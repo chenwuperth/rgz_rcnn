@@ -87,7 +87,7 @@ def get_rgz_root():
 def setup_something(rgz_root, rel_tgt_dir, what, extract=True):
     some_path = osp.join(rgz_root, rel_tgt_dir)
     if (not osp.exists(some_path)):
-        os.mkdirs(some_path)
+        os.makedirs(some_path)
     some_file_path = download_file(get_full_url(what), some_path)
     if (extract):
         extract_file(some_file_path, some_path)
