@@ -18,6 +18,5 @@ mpirun -np 1 python $RGZ_RCNN/tools/test_net.py \
                     --imdb rgz_2017_testD4 \
                     --cfg $RGZ_RCNN/experiments/cfgs/faster_rcnn_end2end.yml \
                     --network rgz_test \
-                    #--weights $RGZ_RCNN/output/faster_rcnn_end2end/rgz_2017_trainD4/VGGnet_fast_rcnn-80000 \
                     --weights $RGZ_RCNN/data/pretrained_model/rgz/D4/VGGnet_fast_rcnn-80000 \
                     --comp
