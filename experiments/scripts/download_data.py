@@ -54,7 +54,7 @@ def download_file(url, tgt_dir):
     full_fn = osp.join(tgt_dir, fn)
     if (osp.exists(full_fn)):
         print("%s exists already, skip downloading" % full_fn)
-        return
+        return full_fn
     cmd = 'wget -O %s %s' % (full_fn, url)
     print("Downloading %s from %s to %s" % (fn, url, tgt_dir))
     stt = time.time()
@@ -62,7 +62,7 @@ def download_file(url, tgt_dir):
     if (status != 0):
         raise Exception("Download %s failed: %s" % (url, msg))
     print("Downloading took %.3f seconds" % (time.time() - stt))
-    return osp.join(full_fn, fn)
+    return full_fn
 
 def extract_file(tar_file, tgt_dir):
     if (not osp.exists(tar_file)):
