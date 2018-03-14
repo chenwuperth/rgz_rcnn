@@ -33,10 +33,7 @@ class rgz(pascal_voc):
         self._classes = ('__background__',  # always index 0
                          '1_1', '1_2', '1_3', '2_2', '2_3', '3_3')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
-        if image_set in ['train21', 'test21', 'train22', 'test22']:
-            self._image_ext = '.png'
-        else:
-            self._image_ext = '_radio.png'
+        self._image_ext = '.png'
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         #self._roidb_handler = self.selective_search_roidb

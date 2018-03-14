@@ -12,13 +12,15 @@ module load opencv openmpi
 
 export PYTHONPATH=$PYTHONPATH:/home/wu082/software/lib/python2.7/site-packages
 
-APP_ROOT=/home/wu082/proj/rgz-faster-rcnn
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+RGZ_RCNN=$BASEDIR/../..
 
-mpirun -np 1 python $APP_ROOT/tools/test_net.py \
+mpirun -np 1 python $RGZ_RCNN/tools/test_net.py \
                     --device gpu \
                     --device_id 0 \
-                    --imdb rgz_2017_test22 \
-                    --cfg $APP_ROOT/experiments/cfgs/faster_rcnn_end2end.yml \
-                    --network VGGnet_test22 \
-                    --weights $APP_ROOT/output/faster_rcnn_end2end/rgz_2017_train22/VGGnet_fast_rcnn-80000 \
+                    --imdb rgz_2017_testD4 \
+                    --cfg $RGZ_RCNN/experiments/cfgs/faster_rcnn_end2end.yml \
+                    --network rgz_test \
+                    #--weights $RGZ_RCNN/output/faster_rcnn_end2end/rgz_2017_trainD4/VGGnet_fast_rcnn-80000 \
+                    --weights $RGZ_RCNN/data/pretrained_model/rgz/D4/VGGnet_fast_rcnn-80000 \
                     --comp

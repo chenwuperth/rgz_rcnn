@@ -208,7 +208,8 @@ def setup_png_images(rgz_root):
 def setup_models(rgz_root):
     model_rel = 'data/pretrained_model/rgz'
     for model_nm in ['d1_model', 'd3_model', 'd4_model']:
-        setup_something(rgz_root, model_rel, model_nm)
+        model_subdir = model_nm.split('_model')[0].upper() #e.g. d1_model --> D1
+        setup_something(rgz_root, '%s/%s' % (model_rel, model_subdir), model_nm)
 
 def setup_vgg_weights(rgz_root):
     setup_something(rgz_root, 'data/pretrained_model/imagenet', 'vgg_weights',
@@ -225,9 +226,8 @@ def create_empty_dirs(rgz_root):
 if __name__ == '__main__':
     check_req()
     rr = get_rgz_root()
-    # setup_annotations(rr)
-    # setup_png_images(rr)
-    # setup_models(rr)
-    # setup_vgg_weights(rr)
-    # create_empty_dirs(rr)
-    find_demo_images(rr)
+    setup_annotations(rr)
+    setup_png_images(rr)
+    setup_models(rr)
+    setup_vgg_weights(rr)
+    create_empty_dirs(rr)

@@ -16,20 +16,11 @@ import numpy as np
 
 # RGZ dataset
 for year in ['2017']:
-    for split in ['train', 'test', 'trainsecond',
-                  'trainthird', 'testthird', 'trainthirdsmall',
-                  'trainfourth', 'testfourth', 'testthirdsmall',
-                  'trainfifth', 'testfifth', 'trainsixth', 'testsixth',
-                  'train07', 'test07', 'train08', 'test08',
-                  'train09', 'test09', 'train10', 'test10',
-                  'train11', 'test11', 'train12', 'test12',
-                  'train13', 'test13', 'train14', 'test14',
-                  'train15', 'test15', 'train16', 'test16',
-                  'train17', 'test17', 'train18', 'test18',
-                  'train19', 'test19', 'train20', 'test20',
-                  'train21', 'test21', 'train22', 'test22']:
+    for split in ['trainD1', 'testD1',
+                  'trainD3', 'testD3',
+                  'trainD4', 'testD4']:
         name = 'rgz_{}_{}'.format(year, split)
-        print name
+        print('Loading dataset %s' % name)
         __sets[name] = (lambda split=split, year=year:
                 datasets.rgz(split, year))
 
