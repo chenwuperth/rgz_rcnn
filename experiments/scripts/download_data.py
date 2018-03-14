@@ -168,6 +168,38 @@ def purge_annotations(rgz_root):
     os.chdir(cwd)
     print("Purged %d annotation files" % c)
 
+def find_demo_images(rgz_root):
+    """
+    Find images that are neither training or testing,
+    and put them into demo index
+    """
+    image_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/PNGImages')
+    index_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/ImageSets/Main')
+    first_id_set = set()
+    for indf in os.listdir(index_path):
+        if (not (indf.startswith('test') or indf.startswith('train'))):
+            continue
+        indf = osp.join(index_path, indf)
+        with open(indf, 'r') as fin:
+            fids = fin.readlines()
+            first_id_set = first_id_set.union(set([x.strip().split('_')[0] for x in fids]))
+
+    cwd = os.getcwd()
+    os.chdir(anno_path)
+    demo_list = []
+    print("Finding images now")
+    for imgf in os.listdir('.'):
+        if (not imgf.endswith('.png')):
+            continue
+        base_fn = imgf.split('.png')[0]
+        first_id = base_fn.split('_')[0]
+        if (not first_id in first_id_set):
+            demo_list.append(base_fn)
+    os.chdir(cwd)
+    print("Found %d demo image files" % len(demo_list))
+    with open(osp.join(index_path, 'demo.txt'), 'w') as fout:
+        fout.write(osp.linesep.join(demo_list))
+
 def setup_png_images(rgz_root):
     png_rel = 'data/RGZdevkit2017/RGZ2017/PNGImages'
     for img_nm in ['d1_img', 'd3_img', 'd4_img']:
@@ -193,10 +225,9 @@ def create_empty_dirs(rgz_root):
 if __name__ == '__main__':
     check_req()
     rr = get_rgz_root()
-    setup_annotations(rr)
-    #setup_png_images(rr)
-    #setup_models(rr)
-    #setup_vgg_weights(rr)
-    #create_empty_dirs(rr)
-    sync_annotations(rr)
-    purge_annotations(rr)
+    # setup_annotations(rr)
+    # setup_png_images(rr)
+    # setup_models(rr)
+    # setup_vgg_weights(rr)
+    # create_empty_dirs(rr)
+    find_demo_images(rr)
