@@ -198,7 +198,7 @@ def find_demo_images(rgz_root):
     os.chdir(cwd)
     print("Found %d demo image files" % len(demo_list))
     with open(osp.join(index_path, 'demo.txt'), 'w') as fout:
-        fout.write(osp.linesep.join(demo_list))
+        fout.write(os.linesep.join(demo_list))
 
 def setup_png_images(rgz_root):
     png_rel = 'data/RGZdevkit2017/RGZ2017/PNGImages'
