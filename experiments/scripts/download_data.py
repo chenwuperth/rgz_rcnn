@@ -185,7 +185,7 @@ def find_demo_images(rgz_root):
             first_id_set = first_id_set.union(set([x.strip().split('_')[0] for x in fids]))
 
     cwd = os.getcwd()
-    os.chdir(anno_path)
+    os.chdir(image_path)
     demo_list = []
     print("Finding images now")
     for imgf in os.listdir('.'):
