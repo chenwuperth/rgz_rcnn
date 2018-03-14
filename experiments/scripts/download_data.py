@@ -56,11 +56,11 @@ def download_file(url, tgt_dir):
         print("%s exists already, skip downloading" % full_fn)
         return full_fn
     cmd = 'wget -O %s %s' % (full_fn, url)
-    print("Downloading %s from %s to %s" % (fn, url, tgt_dir))
+    print("Downloading %s to %s" % (fn, tgt_dir))
     stt = time.time()
     status, msg = commands.getstatusoutput(cmd)
     if (status != 0):
-        raise Exception("Download %s failed: %s" % (url, msg))
+        raise Exception("Downloading from %s failed: %s" % (url, msg))
     print("Downloading took %.3f seconds" % (time.time() - stt))
     return full_fn
 
@@ -95,6 +95,51 @@ def setup_something(rgz_root, rel_tgt_dir, what, extract=True):
 def setup_annotations(rgz_root):
     setup_something(rgz_root, 'data/RGZdevkit2017/RGZ2017/Annotations', 'anno')
 
+def sync_annotations(rgz_root):
+    """
+    Sync each index file in the imagesets with its annotation file
+    """
+    cwd = os.getcwd()
+    anno_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/Annotations')
+    os.chdir(anno_path)
+    #
+    index_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/ImageSets/Main')
+    missing_files = []
+    for indf in os.listdir(index_path):
+        indf = osp.join(index_path, indf)
+        with open(indf, 'r') as fin:
+            fids = fin.readlines()
+            fids = [x.strip() for x in fids]
+            for fid in fids:
+                first_id = fid.split('_')[0]
+                first_id_fn = '%s.xml' % first_id
+                fid_fn = '%s.xml' % fid
+                if (osp.exists(first_id_fn)): # mustn't be symlink
+                    if (osp.exists(fid_fn)):
+                        if (osp.islink(fid_fn)):
+                            continue
+                        else:
+                            os.remove(fid_fn)
+                            os.symlink(first_id_fn, fid_fn)
+                    else:
+                        os.symlink(first_id_fn, fid_fn)
+                else:
+                    if (osp.exists(fid_fn)):
+                        if (osp.islink(fid_fn)):
+                            os.remove(fid_fn)
+                            missing_files.append(first_id)
+                            print("%s missing annotation" % first_id)
+                        else:
+                            os.rename(fid_fn, first_id_fn)
+                            os.symlink(first_id_fn, fid_fn)
+                    else:
+                        missing_files.append(first_id)
+                        print("%s missing annotation" % first_id)
+    os.chdir(cwd)
+    with open('missing_first_ids', 'w') as fout:
+        fout.write(os.linesep.join(missing_files))
+
+
 def setup_png_images(rgz_root):
     png_rel = 'data/RGZdevkit2017/RGZ2017/PNGImages'
     for img_nm in ['d1_img', 'd3_img', 'd4_img']:
@@ -125,3 +170,4 @@ if __name__ == '__main__':
     setup_models(rr)
     setup_vgg_weights(rr)
     create_empty_dirs(rr)
+    #sync_annotations(rr)
