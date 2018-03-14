@@ -136,9 +136,34 @@ def sync_annotations(rgz_root):
                         missing_files.append(first_id)
                         print("%s missing annotation" % first_id)
     os.chdir(cwd)
-    with open('missing_first_ids', 'w') as fout:
-        fout.write(os.linesep.join(missing_files))
+    if (len(missing_files) > 0):
+        with open('missing_first_ids', 'w') as fout:
+            fout.write(os.linesep.join(missing_files))
 
+def purge_annotations(rgz_root):
+    """
+    Purge unnecessary annotations
+    """
+    anno_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/Annotations')
+    index_path = osp.join(rgz_root, 'data/RGZdevkit2017/RGZ2017/ImageSets/Main')
+    first_id_set = set()
+    for indf in os.listdir(index_path):
+        indf = osp.join(index_path, indf)
+        with open(indf, 'r') as fin:
+            fids = fin.readlines()
+            first_id_set = first_id_set.union(set([x.strip().split('_')[0] for x in fids]))
+
+    cwd = os.getcwd()
+    os.chdir(anno_path)
+    c = 0
+    print("Purging files now")
+    for annof in os.listdir('.'):
+        first_id = annof.split('_')[0]
+        if (not first_id in first_id_set):
+            os.remove(annof)
+            c += 1
+    os.chdir(cwd)
+    print("Purged %d annotation files" % c)
 
 def setup_png_images(rgz_root):
     png_rel = 'data/RGZdevkit2017/RGZ2017/PNGImages'
@@ -171,3 +196,4 @@ if __name__ == '__main__':
     setup_vgg_weights(rr)
     create_empty_dirs(rr)
     #sync_annotations(rr)
+    #purge_annotations(rr)
