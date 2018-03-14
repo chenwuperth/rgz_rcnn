@@ -48,7 +48,7 @@ def check_req():
         raise Exception('wget is not installed properly')
 
 def download_file(url, tgt_dir):
-    if (osp.exists(tgt_dir)):
+    if (not osp.exists(tgt_dir)):
         raise Exception("tgt_dir %s not found" % tgt_dir)
     fn = url.split('/')[-1] # hack hack hack
     full_fn = osp.join(tgt_dir, fn)
