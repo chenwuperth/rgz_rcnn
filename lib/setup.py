@@ -3,6 +3,8 @@
 # Copyright (c) 2015 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
+#
+# Modified by chen.wu@icrar.org
 # --------------------------------------------------------
 
 import os
@@ -40,7 +42,7 @@ def locate_cuda():
         default_path = pjoin(os.sep, 'usr', 'local', 'cuda', 'bin')
         nvcc = find_in_path('nvcc', os.environ['PATH'] + os.pathsep + default_path)
         if nvcc is None:
-          return None;
+          return None
         home = os.path.dirname(os.path.dirname(nvcc))
 
     cudaconfig = {'home':home, 'nvcc':nvcc,
@@ -48,12 +50,15 @@ def locate_cuda():
                   'lib64': pjoin(home, 'lib64')}
     for k, v in cudaconfig.iteritems():
         if not os.path.exists(v):
-            return None;
+            return None
 
     return cudaconfig
 
 CUDA = locate_cuda()
-print('Found cuda lib = {0}'.format(CUDA['lib64']))
+if (CUDA):
+    print('Found cuda lib = {0}'.format(CUDA['lib64']))
+else:
+    print('No CUDA is found, NMS will be compiled using CPUs only')
 
 # Obtain the numpy include directory.  This logic works across numpy versions.
 try:
