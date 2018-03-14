@@ -11,10 +11,7 @@ module load tensorflow/1.4.0-py27-gpu
 module load opencv openmpi
 
 export PYTHONPATH=$PYTHONPATH:/home/wu082/software/lib/python2.7/site-packages
-
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-RGZ_RCNN=$BASEDIR/../..
-
+RGZ_RCNN=/flush1/wu082/proj/rgz_rcnn
 mpirun -np 1 python $RGZ_RCNN/tools/train_net.py \
                     --device gpu \
                     --device_id 0 \
