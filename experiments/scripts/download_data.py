@@ -158,7 +158,10 @@ def purge_annotations(rgz_root):
     c = 0
     print("Purging files now")
     for annof in os.listdir('.'):
-        first_id = annof.split('_')[0]
+        if (not annof.endswith('.xml')):
+            os.remove(annof)
+            continue
+        first_id = annof.split('.xml')[0].split('_')[0]
         if (not first_id in first_id_set):
             os.remove(annof)
             c += 1
@@ -191,9 +194,9 @@ if __name__ == '__main__':
     check_req()
     rr = get_rgz_root()
     setup_annotations(rr)
-    setup_png_images(rr)
-    setup_models(rr)
-    setup_vgg_weights(rr)
-    create_empty_dirs(rr)
-    #sync_annotations(rr)
-    #purge_annotations(rr)
+    #setup_png_images(rr)
+    #setup_models(rr)
+    #setup_vgg_weights(rr)
+    #create_empty_dirs(rr)
+    sync_annotations(rr)
+    purge_annotations(rr)
