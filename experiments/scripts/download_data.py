@@ -124,4 +124,4 @@ if __name__ == '__main__':
     setup_png_images(rr)
     setup_models(rr)
     setup_vgg_weights(rr)
-    create_empty_dirs()
+    create_empty_dirs(rr)
