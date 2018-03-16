@@ -5,6 +5,8 @@
 # Copyright (c) 2015 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
+#
+# Modified by chen.wu@icrar.org
 # --------------------------------------------------------
 
 """Test a Fast R-CNN network on an image database."""
@@ -78,15 +80,14 @@ if __name__ == '__main__':
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
 
-    device_name = '/{}:{:d}'.format(args.device,args.device_id)
-    print device_name
-
     network = get_network(args.network_name)
     print 'Use network `{:s}` in training'.format(args.network_name)
 
     if args.device == 'gpu':
         cfg.USE_GPU_NMS = True
         cfg.GPU_ID = args.device_id
+        device_name = '/{}:{:d}'.format(args.device, args.device_id)
+        print(device_name)
     else:
         cfg.USE_GPU_NMS = False
 

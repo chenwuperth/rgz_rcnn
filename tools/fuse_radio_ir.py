@@ -9,7 +9,7 @@
 #    Created on 15 March 2018 by chen.wu@icrar.org
 
 import signal
-import os
+import os, warnings
 import os.path as osp
 import shutil
 import sys
@@ -57,15 +57,17 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
     overlay radio contours on top of IR images, and
     (optionally) mask "non-related" regions with IR means
     """
+    warnings.simplefilter("ignore")
     cs = _get_contour(fits_fn, sigma_level)
+    warnings.simplefilter("default")
     if (cs is None):
         print("Fail to produce contour on FITS file: %s" % fits_fn)
-        return
+        return None
     if (mask_ir):
         im_ir = get_masked_ir(fits_fn, None, ir_fn, output_dir, cs,
                            sigma_level=sigma_level, replace_mask_with_mean=True)
     else:
-        im_ir = cv2.imread(ir_fn)
+        im_ir = ir_fn#cv2.imread(ir_fn)
     w, h, d = im_ir.shape
     xsize_pix = w
     ysize_pix = h
@@ -89,8 +91,12 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
 
     # Create matplotlib path for contours
     path = Path(verts_all, codes_all)
+    ecolor = 'blue' if mask_ir else 'limegreen'
+    linew = 0.25 if mask_ir else 0.25
     patch_contour = patches.PathPatch(path, facecolor='none',
-                                      edgecolor='blue', lw=0.25) #limegreen
+                                      edgecolor=ecolor, lw=linew) #limegreen
+    if (not mask_ir):
+        return patch_contour
 
     my_dpi = 150.0
     fig = plt.figure()
@@ -107,10 +113,12 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
     ax.add_patch(patch_contour)
 
     # Save hard copy of the figure
-    output_fn = '%s' % osp.basename(ir_fn).replace('_infrared', '_infraredctmask')
-    plt.savefig(osp.join(output_dir, output_fn), dpi=my_dpi)
+    suffix = '_infraredctmask' if mask_ir else '_infraredct_det'
+    output_fn = '%s' % osp.basename(ir_fn).replace('_infrared', suffix)
+    output_fp = osp.join(output_dir, output_fn)
+    plt.savefig(output_fp, dpi=my_dpi)
     plt.close()
-    return output_fn
+    return output_fp
 
 def get_masked_ir(fits_fn, radio_fn, ir_fn, output_dir, cs,
                   sigma_level=7, replace_mask_with_mean=False):

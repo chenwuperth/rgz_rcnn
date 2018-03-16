@@ -81,9 +81,10 @@ class Network(object):
             if isinstance(layer, basestring):
                 try:
                     layer = self.layers[layer]
-                    print layer
+                    if (DEBUG):
+                        print(layer)
                 except KeyError:
-                    print self.layers.keys()
+                    print(self.layers.keys())
                     raise KeyError('Unknown layer name fed: %s'%layer)
             self.inputs.append(layer)
         return self
@@ -92,7 +93,7 @@ class Network(object):
         try:
             layer = self.layers[layer]
         except KeyError:
-            print self.layers.keys()
+            print(self.layers.keys())
             raise KeyError('Unknown layer name fed: %s'%layer)
         return layer
 
@@ -291,7 +292,8 @@ class Network(object):
             if isinstance(input[1], tuple):
                 input[1] = input[1][0]
 
-            print input
+            if (DEBUG):
+                print(input)
             if ('TRAIN' == phase):
                 num_prop = cfg.TRAIN.BATCH_SIZE
                 img_size = cfg.TRAIN.SCALES[0]
