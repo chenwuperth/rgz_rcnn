@@ -15,6 +15,7 @@ This script is Python 2 compatible ONLY
 
 data/RGZdevkit2017/RGZ2017/Annotations
 data/RGZdevkit2017/RGZ2017/PNGImages
+data/rgzdemo
 data/pretrained_model
 
 data/RGZdevkit2017/results/RGZ2017/Main
@@ -34,7 +35,8 @@ rgz_dn_dict = {'d1_img': 'D1_images.tgz',
                'd4_img':  'D4_images.tgz',
                'd4_model':  'D4_model.tar',
                'vgg_weights':  'VGG_imagenet.npy',
-               'anno':  'annotation.tar'}
+               'anno':  'annotation.tar',
+               'demo_img':  'DEMO_images.tgz'}
 
 def get_full_url(fkey):
     if (not fkey in rgz_dn_dict):
@@ -205,6 +207,9 @@ def setup_png_images(rgz_root):
     for img_nm in ['d1_img', 'd3_img', 'd4_img']:
         setup_something(rgz_root, png_rel, img_nm)
 
+def setup_demo_images(rgz_root):
+    setup_something(rgz_root, 'data/rgzdemo', 'demo_img')
+
 def setup_models(rgz_root):
     model_rel = 'data/pretrained_model/rgz'
     for model_nm in ['d1_model', 'd3_model', 'd4_model']:
@@ -228,6 +233,7 @@ if __name__ == '__main__':
     rr = get_rgz_root()
     setup_annotations(rr)
     setup_png_images(rr)
+    setup_demo_images(rr)
     setup_models(rr)
     setup_vgg_weights(rr)
     create_empty_dirs(rr)
