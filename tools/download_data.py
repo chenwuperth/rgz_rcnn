@@ -82,7 +82,7 @@ def extract_file(tar_file, tgt_dir):
 def get_rgz_root():
     # current file directory
     cfd = osp.dirname(osp.abspath(__file__))
-    rgz_root = osp.abspath(osp.join(cfd, '..', '..'))
+    rgz_root = osp.abspath(osp.join(cfd, '..'))
     print("RGZ root: '%s'" % rgz_root)
     return rgz_root
 
