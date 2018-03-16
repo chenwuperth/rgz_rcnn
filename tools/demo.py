@@ -97,7 +97,7 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     boxes *= float(show_img_size) / float(im.shape[0])
     #print("scores.shape = {0}, boxes.shape = {1}".format(scores.shape, boxes.shape))
     timer.toc()
-    print ('That took {:.3f} secs for '
+    print ('Done in {:.3f} secs for '
            '{:d} RoI proposals').format(timer.total_time, boxes.shape[0])
 
     # Visualize detections for each class
@@ -245,11 +245,13 @@ if __name__ == '__main__':
 
     saver = tf.train.Saver()
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    print('Loading RGZ model from {:s}').format(model_weight)
+    sys.stdout.write('Loading RGZ model from {:s}... '.format(model_weight))
+    sys.stdout.flush()
     stt = time.time()
     saver.restore(sess, model_weight)
-    print("That took %.3f seconds" % (time.time() - stt))
-    print("Detecting radio galaxies...")
+    print("Done in %.3f seconds" % (time.time() - stt))
+    sys.stdout.write("Detecting radio galaxies... ")
+    sys.stdout.flush()
     ret = demo(sess, net, im_file, args.ir_png, args.radio_fits, conf_thresh=args.conf_thresh,
                eval_class=(not args.eval_eoi))
     if (-1 == ret):
@@ -259,7 +261,7 @@ if __name__ == '__main__':
         output_fn = osp.join(args.fig_path, im_name.replace('.png', '_pred.png'))
         plt.savefig(output_fn, dpi=150)
         plt.close()
-        print('Output saved to %s' % output_fn)
+        print('Detection saved to %s' % output_fn)
         for trf in [im_file]:
             if (osp.exists(trf)):
                 try:
