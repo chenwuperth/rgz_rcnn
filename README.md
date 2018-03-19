@@ -1,5 +1,7 @@
 # rgz_rcnn
-Region-based Convolutional Neural Networks for Radio Galaxy Zoo
+Region-based Convolutional Neural Networks for Radio Galaxy Zoo.
+
+The source code of our proof-of-concept automated radio source morphology classifier based upon theRegion-based Convolutional Neutral Network (R-CNN) algorithm.This is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. Hence, demonstrating the strengths for the application of complex deep learning algorithms in the automated analysis of radio sources that will eventuate from the next-generation large sky surveys at radio wavelengths.
 
 
 ## Requirements
@@ -34,13 +36,11 @@ Run: `cd experiments/scripts` and `bash example_test_cpu.sh` to evaluate the RGZ
 
 Run: `cd experiments/scripts` and `sbatch example_train_slurm.sh` to train your own RGZ model on GPU node managed by the SLURM job scheduler. You will need to change resources, paths, and module names based on the configuration of your own cluster.
 
-
-
 ## Questions?
 
 Feel free to open an issue to discuss any questions not covered so far.
 
-# Citation
+## Citation
 
 If you benefit from this code, please cite our paper:
 
@@ -52,3 +52,5 @@ If you benefit from this code, please cite our paper:
   year={2018}
 }
 ```
+## Acknowledgement
+Initial codebase was built on the [Faster-RCNN_TF](https://github.com/smallcorgi/Faster-RCNN_TF) project with substantial adaptation and modification.
