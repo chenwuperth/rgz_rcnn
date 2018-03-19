@@ -1,0 +1,7 @@
+matplotlib
+numpy
+scipy
+opencv-python==3.2.0.6
+cython
+easydict
+astropy
