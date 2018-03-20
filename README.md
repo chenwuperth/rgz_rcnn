@@ -3,7 +3,7 @@ Region-based Convolutional Neural Networks for Radio Galaxy Zoo.
 
 This repository contains the source code of our proof-of-concept automated radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). This is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. Hence, demonstrating the strengths for the application of deep learning algorithms in the automated analysis of radio sources that will eventuate from the next-generation large sky surveys at radio wavelengths.
 
-Compared to the existing Faster R-CNN implementations, we replaced the original RoI pooling layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support the end-to-end training. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a MUCH longer latency  of course --- e.g. 6 seconds per FoV image compared to 100s of milliseonds).
+Compared to existing Faster R-CNN implementations, we replaced the original RoI pooling layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support the end-to-end training. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a much longer latency  of course --- e.g. 6 seconds compared to 100s of milliseconds per image).
 
 ## Requirements
 
