@@ -1,8 +1,9 @@
 # rgz_rcnn
 Region-based Convolutional Neural Networks for Radio Galaxy Zoo.
 
-The source code of our proof-of-concept automated radio source morphology classifier based upon theRegion-based Convolutional Neutral Network (R-CNN) algorithm.This is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. Hence, demonstrating the strengths for the application of complex deep learning algorithms in the automated analysis of radio sources that will eventuate from the next-generation large sky surveys at radio wavelengths.
+This repository contains the source code of our proof-of-concept automated radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). This is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. Hence, demonstrating the strengths for the application of deep learning algorithms in the automated analysis of radio sources that will eventuate from the next-generation large sky surveys at radio wavelengths.
 
+Compared to the existing Faster R-CNN implementations, we replaced the original RoI pooling layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support the end-to-end training. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a MUCH longer latency  of course --- e.g. 6 seconds per FoV image compared to 100s of milliseonds).
 
 ## Requirements
 
@@ -16,7 +17,9 @@ The code requires [Tensorflow 1.0 or above](https://www.tensorflow.org/install/)
 * easydict
 * astropy
 
-Those modules can be installed using: `pip install -U pip` followed by `pip install -r requirements.txt`. It is highly recommended to setup a standalone [python virtual environment](https://virtualenv.pypa.io/en/stable/) to install these modules and run the code.
+Those modules can be installed using: `pip install -U pip` followed by `pip install -r requirements.txt`. It is **highly recommended** to setup a standalone [python virtual environment](https://virtualenv.pypa.io/en/stable/) to install these modules and run the code.
+
+The code requires at least 700 MB of disk space and 3GB of RAM. For GPU training, this means the size of the device RAM is at least 3 GB.
 
 
 ## Setup
@@ -53,4 +56,4 @@ If you benefit from this code, please cite our paper:
 }
 ```
 ## Acknowledgement
-Initial codebase was built on the [Faster-RCNN_TF](https://github.com/smallcorgi/Faster-RCNN_TF) project with substantial adaptation and modification.
+The initial codebase was built on the awesome [Faster-RCNN_TF](https://github.com/smallcorgi/Faster-RCNN_TF) project.
