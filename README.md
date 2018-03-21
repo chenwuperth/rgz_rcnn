@@ -33,16 +33,24 @@ The code requires at least 700 MB of disk space and 3GB of RAM. For GPU training
 
 ### Getting started
 
-Run: `cd tools` and `python demo.py --radio ../data/rgzdemo/FIRSTJ011349.0+065025.fits --ir ../data/rgzdemo/FIRSTJ011349.0+065025_infrared.png` to detect a multi-component radio galaxy! Some examples of demo output are shown below:
+**Run**: `cd tools` and `python demo.py --radio ../data/rgzdemo/FIRSTJ011349.0+065025.fits --ir ../data/rgzdemo/FIRSTJ011349.0+065025_infrared.png` to detect a multi-component radio galaxy! Some examples of demo output are shown below:
 
 <img src="http://ict.icrar.org/store/staff/cwu/rgz_data/demo_result.png" width="800">
 
 Each detected box denotes an identified radio source, and its morphology is succinctly labelled as *X* C_*Y* P, where *X* and *Y* denotes the number of radio components and the number of radio peaks respectively. Each morphology label is also associated with a score between 0 and 1, indicating the probability of a morphology class being present.
 
+**Run**: `cd experiments/scripts` and `bash example_test_cpu.sh` to evaluate the RGZ model on 4603 images on your laptop using CPUs only. Please change the `RGZ_RCNN` environment variable in the script accordingly. The output records the [Average Precision](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision) for each class and the overall [mean AP](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision) for the *D4* method.
+| Morphology Classes       | AP     |
+|-------------|--------|
+| 1C_1P       | 0.8784 |
+| 1C_2P       | 0.7074 |
+| 1C_3P       | 0.8941 |
+| 2C_2P       | 0.8200 |
+| 2C_3P       | 0.7916 |
+| 3C_3P       | 0.9269 |
+| mAP         | 83.6% |
 
-Run: `cd experiments/scripts` and `bash example_test_cpu.sh` to evaluate the RGZ model on 4603 images on your laptop using CPUs only. Please change the `RGZ_RCNN` environment variable in the script accordingly.
-
-Run: `cd experiments/scripts` and `sbatch example_train_slurm.sh` to train your own RGZ model on GPU node managed by the SLURM job scheduler. You will need to change resources, paths, and module names based on the configuration of your own cluster.
+**Run**: `cd experiments/scripts` and `sbatch example_train_slurm.sh` to train your own RGZ model on GPU node managed by the SLURM job scheduler. You will need to change resources, paths, and module names based on the configuration of your own cluster.
 
 ## Questions?
 
