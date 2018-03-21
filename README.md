@@ -35,7 +35,7 @@ The code requires at least 700 MB of disk space and 3GB of RAM. For GPU training
 
 Run: `cd tools` and `python demo.py --radio ../data/rgzdemo/FIRSTJ011349.0+065025.fits --ir ../data/rgzdemo/FIRSTJ011349.0+065025_infrared.png` to detect a multi-component radio galaxy! Some examples of demo output are shown below:
 
-<img src="http://ict.icrar.org/store/staff/cwu/rgz_data/demo_result.png" width="588">
+<img src="http://ict.icrar.org/store/staff/cwu/rgz_data/demo_result.png" width="800">
 
 Each detected box denotes an identified radio source, and its morphology is succinctly labelled as *X* C_*Y* P, where *X* and *Y* denotes the number of radio components and the number of radio peaks respectively. Each morphology label is also associated with a score between 0 and 1, indicating the probability of a morphology class being present.
 
