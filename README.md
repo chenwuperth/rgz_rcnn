@@ -40,6 +40,7 @@ The code requires at least 700 MB of disk space and 3GB of RAM. For GPU training
 Each detected box denotes an identified radio source, and its morphology is succinctly labelled as *X* C_*Y* P, where *X* and *Y* denotes the number of radio components and the number of radio peaks respectively. Each morphology label is also associated with a score between 0 and 1, indicating the probability of a morphology class being present.
 
 **Run**: `cd experiments/scripts` and `bash example_test_cpu.sh` to evaluate the RGZ model on 4603 images on your laptop using CPUs only. Please change the `RGZ_RCNN` environment variable in the script accordingly. The output records the [Average Precision](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision) for each class and the overall [mean AP](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision) for the *D4* method.
+
 | Morphology Classes       | AP     |
 |-------------|--------|
 | 1C_1P       | 0.8784 |
