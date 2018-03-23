@@ -56,6 +56,9 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
     """
     overlay radio contours on top of IR images, and
     (optionally) mask "non-related" regions with IR means
+
+    if mask_ir is set to False, return the contour object without doing anything
+    to the image
     """
     warnings.simplefilter("ignore")
     cs = _get_contour(fits_fn, sigma_level)

@@ -73,19 +73,18 @@ def vis_detections(im, class_name, dets,ax, thresh=0.5):
 def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True):
     """
     Detect object classes in an image using pre-computed object proposals.
+    im_file:    The "fused" image file path
+    vis_file:   The background image file on which detections are laid.
+                Normallly, this is just the IR image file path
+    fits_fn:    The FITS file path
     eval_class: True - use traditional per class-based evaluation style
                 False - use per RoI-based evaluation
 
     """
-
-    # Load the demo image
-    # im_file = os.path.join(cfg.DATA_DIR, 'demo', image_name)
-    #im_file = os.path.join(input_path, image_name)
     show_img_size = cfg.TEST.SCALES[0]
     if (not os.path.exists(im_file)):
         print('%s cannot be found' % (im_file))
         return -1
-    #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im = cv2.imread(im_file)
 
     # Detect all object classes and regress object bounds
@@ -95,15 +94,10 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     scores, boxes = im_detect(sess, net, im, save_vis_dir=None,
                              img_name=os.path.splitext(image_name)[0])
     boxes *= float(show_img_size) / float(im.shape[0])
-    #print("scores.shape = {0}, boxes.shape = {1}".format(scores.shape, boxes.shape))
     timer.toc()
     print ('Done in {:.3f} secs for '
            '{:d} RoI proposals').format(timer.total_time, boxes.shape[0])
 
-    # Visualize detections for each class
-    # box_image_name = image_name.split('_')[0] + '_logminmax_radio.png'
-    # im_box_file = os.path.join(input_path, box_image_name)
-    # if (os.path.exists(im_box_file)):
     im = cv2.imread(vis_file)
 
     my_dpi = 100
@@ -117,11 +111,9 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     #ax.set_aspect('equal')
     im = cv2.resize(im, (show_img_size, show_img_size))
     im = im[:, :, (2, 1, 0)]
-    #fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(im, aspect='equal')
     patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False)
     ax.add_patch(patch_contour)
-    #CONF_THRESH = 0.3
     NMS_THRESH = cfg.TEST.NMS #cfg.TEST.RPN_NMS_THRESH # 0.3
 
     tt_vis = 0
