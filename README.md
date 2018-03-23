@@ -19,7 +19,7 @@ The code requires [Tensorflow 1.0 or above](https://www.tensorflow.org/install/)
 
 Those modules can be installed using: `pip install -U pip` followed by `pip install -r requirements.txt`. It is **highly recommended** to setup a standalone [python virtual environment](https://pypi.python.org/pypi/virtualenv) to install these modules and run the code.
 
-The code requires at least 700 MB of disk space and 3GB of RAM. For GPU training, this means the size of the device RAM is at least 3 GB.
+The code requires at least 3 GB of disk space (to store images and pre-trained models) and 3GB of RAM during training. For GPU training, this means the size of the device RAM is at least 3 GB.
 
 
 ## Setup
