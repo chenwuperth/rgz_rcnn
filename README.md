@@ -16,6 +16,8 @@ The code requires [Tensorflow 1.0 or above](https://www.tensorflow.org/install/)
 * cython
 * easydict
 * astropy
+* Pillow
+* pyyaml
 
 Those modules can be installed using: `pip install -U pip` followed by `pip install -r requirements.txt`. It is **highly recommended** to setup a standalone [python virtual environment](https://pypi.python.org/pypi/virtualenv) to install these modules and run the code.
 

@@ -16,7 +16,10 @@ import math
 from rpn_msr.generate import imdb_proposals_det
 import tensorflow as tf
 from fast_rcnn.bbox_transform import clip_boxes, bbox_transform_inv, bbox_contains
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except:
+    print('Cannot run vis during test due to the unavailability of matplotlib')
 from tensorflow.python.client import timeline
 import time
 from collections import defaultdict
