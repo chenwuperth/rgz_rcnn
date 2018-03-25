@@ -95,8 +95,8 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
                              img_name=os.path.splitext(image_name)[0])
     boxes *= float(show_img_size) / float(im.shape[0])
     timer.toc()
-    print ('Done in {:.3f} secs for '
-           '{:d} RoI proposals').format(timer.total_time, boxes.shape[0])
+    sys.stdout.write('Done in {:.3f} secs'.format(timer.total_time))
+    sys.stdout.flush()
 
     im = cv2.imread(vis_file)
 
@@ -154,8 +154,8 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     scores_im = scores_im[keep, :]
 
     keep_indices = range(boxes_im.shape[0])
-    vis_detections(im, None, boxes_im[keep_indices, :], ax, thresh=conf_thresh)
-
+    num_sources = vis_detections(im, None, boxes_im[keep_indices, :], ax, thresh=conf_thresh)
+    print(', found %d sources' % num_sources)
     return 0
 
 def parse_args():
@@ -180,6 +180,8 @@ def parse_args():
     parser.add_argument('--evaleoi', dest='eval_eoi',
                         help='evaluation based on EoI',
                         action='store_true', default=False)
+    parser.add_argument('--model', dest='model', help='which pre-trained model to load',
+                        default='D4')
 
     args = parser.parse_args()
     if (args.radio_fits is None or args.ir_png is None):
@@ -192,6 +194,10 @@ def parse_args():
 
     if (not osp.exists(args.ir_png)):
         print('Infrared png %s not found' % args.ir_png)
+        sys.exit(1)
+
+    if (not args.model in ['D4', 'D5']):
+        print('Unknown model: %s' % args.model)
         sys.exit(1)
 
     if args.device.lower() == 'gpu':
@@ -214,23 +220,27 @@ def hard_code_cfg():
     cfg.TEST.NMS = 0.3
     cfg.TEST.RPN_NMS_THRESH = 0.5
 
-def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp'):
+def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
     """
     return the full path to the generated fused file
     """
-    return fuse(radio_fn, ir_fn, out_dir)
+    if (model != 'D5'):
+        nsz = None
+    else:
+        nsz = cfg.TEST.SCALES[0] #i.e. 600
+    return fuse(radio_fn, ir_fn, out_dir, new_size=nsz)
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #hide tensorflow warnings
     args = parse_args()
-    im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png)
+    im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png, model=args.model)
     #print("im_file", im_file)
     if (im_file is None):
         print("Error in generating contours")
         sys.exit(1)
     hard_code_cfg()
     net = get_network('rgz_test')
-    model_weight = osp.join(get_rgz_root(), 'data/pretrained_model/rgz/D4/VGGnet_fast_rcnn-80000')
+    model_weight = osp.join(get_rgz_root(), 'data/pretrained_model/rgz/%s/VGGnet_fast_rcnn-80000' % args.model)
     if (not osp.exists(model_weight + '.index')):
         print("Fail to load rgz model, have you done \'python download_data.py\' already?")
         sys.exit(1)
@@ -242,7 +252,7 @@ if __name__ == '__main__':
     stt = time.time()
     saver.restore(sess, model_weight)
     print("Done in %.3f seconds" % (time.time() - stt))
-    sys.stdout.write("Detecting radio galaxies... ")
+    sys.stdout.write("Detecting radio sources... ")
     sys.stdout.flush()
     ret = demo(sess, net, im_file, args.ir_png, args.radio_fits, conf_thresh=args.conf_thresh,
                eval_class=(not args.eval_eoi))

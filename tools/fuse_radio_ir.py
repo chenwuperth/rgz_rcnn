@@ -52,7 +52,7 @@ def _get_contour(fits_fn, sigma_level):
         signal.alarm(0)
     return cs
 
-def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
+def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True, new_size=None):
     """
     overlay radio contours on top of IR images, and
     (optionally) mask "non-related" regions with IR means
@@ -71,6 +71,10 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
                            sigma_level=sigma_level, replace_mask_with_mean=True)
     else:
         im_ir = ir_fn#cv2.imread(ir_fn)
+    if (new_size is not None and (new_size != im_ir.shape[0])):
+        print("resizing im_ir to {0}".format(new_size))
+        im_ir = cv2.resize(im_ir, (new_size, new_size),
+                           interpolation=cv2.INTER_LINEAR)
     w, h, d = im_ir.shape
     xsize_pix = w
     ysize_pix = h
@@ -96,6 +100,8 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True):
     path = Path(verts_all, codes_all)
     ecolor = 'blue' if mask_ir else 'limegreen'
     linew = 0.25 if mask_ir else 0.25
+    if (new_size is not None):
+        linew = 0.35
     patch_contour = patches.PathPatch(path, facecolor='none',
                                       edgecolor=ecolor, lw=linew) #limegreen
     if (not mask_ir):
