@@ -19,6 +19,7 @@ import cPickle
 import os.path as osp
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 CLASSES =  ('__background__', # always index 0
                             '1_1', '1_2', '1_3', '2_2', '2_3', '3_3')
@@ -126,14 +127,15 @@ def get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv, ovth
                     if not R['difficult'][jmax]:
                         # if this source is taken, then the detection is FP!
                         if not R['det'][jmax]:
-                            ret_list[0].append(sorted_scores[d])
+                            ret_list[0].append(-sorted_scores[d])
                             ret_list[1].append(R['cl'])
         ret[classname] = ret_list
 
     return ret
 
 def plot_prob_cl_corr(classname, prob_list, cl_list):
-    pass
+    plt.scatter(cl_list, prob_list)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -149,3 +151,4 @@ if __name__ == '__main__':
     ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
     for k, v in ret.items():
         print(k, len(v[0]), len(v[1]))
+        plot_prob_cl_corr(k, v[0], v[1])
