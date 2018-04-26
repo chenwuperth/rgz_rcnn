@@ -18,7 +18,10 @@ import os
 import cPickle
 import os.path as osp
 
-from demo import CLASSES
+import numpy as np
+
+CLASSES =  ('__background__', # always index 0
+                            '1_1', '1_2', '1_3', '2_2', '2_3', '3_3')
 
 def load_annotations(cachefile):
     if (not osp.exists(cachefile)):
@@ -42,7 +45,7 @@ def load_cl(catalog_csv, suffix='_infraredctmask'):
         kv[cat[1] + suffix] = float(cat[-2])
     return kv
 
-def do_it(imagesetfile, anno_file, detpath, catalog_csv):
+def get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
     """
     imagesetfile:   Text file containing the list of images, one image per line
                     e.g. data/RGZdevkit2017/RGZ2017/ImageSets/Main/testD4.txt
@@ -51,7 +54,7 @@ def do_it(imagesetfile, anno_file, detpath, catalog_csv):
                     e.g. data/RGZdevkit2017/annotations_cache/annots.pkl
 
     detpath:        Path to detections
-                    e.g. data/RGZdevkit2017/results/RGZ2017/Main/comp4_det_testD4_2_3.txt
+                    e.g. data/RGZdevkit2017/results/RGZ2017/Main/comp4_det_testD4_{0}.txt
 
     catalog_csv:    e.g
                     data/RGZdevkit2017/RGZ2017/ImageSets/Main/full_catalogue.csv
@@ -62,15 +65,15 @@ def do_it(imagesetfile, anno_file, detpath, catalog_csv):
         lines = f.readlines()
     imagenames = [x.strip() for x in lines]
 
+    ret = dict()
     for classname in CLASSES[1:]:
         class_recs = dict() # class-specific ground truth
-        npos = 0
+        ret_list = [[], []]
         for imagename in imagenames:
             R = [obj for obj in recs[imagename] if obj['name'] == classname]
             bbox = np.array([x['bbox'] for x in R])
             difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
             det = [False] * len(R)
-            npos = npos + sum(~difficult)
             class_recs[imagename] = {'bbox': bbox,
                                      'difficult': difficult,
                                      'det': det,
@@ -78,7 +81,7 @@ def do_it(imagesetfile, anno_file, detpath, catalog_csv):
         # read dets
         detfile = detpath.format(classname)
         with open(detfile, 'r') as f:
-        lines = f.readlines()
+            lines = f.readlines()
         if any(lines) == 1:
             splitlines = [x.strip().split(' ') for x in lines]
             image_ids = [x[0] for x in splitlines]
@@ -93,8 +96,6 @@ def do_it(imagesetfile, anno_file, detpath, catalog_csv):
 
             # go down dets and mark TPs and FPs
             nd = len(image_ids)
-            tp = np.zeros(nd)
-            fp = np.zeros(nd)
             for d in range(nd):
                 R = class_recs[image_ids[d]] # gt
                 bb = BB[d, :].astype(float) # detected
@@ -125,9 +126,26 @@ def do_it(imagesetfile, anno_file, detpath, catalog_csv):
                     if not R['difficult'][jmax]:
                         # if this source is taken, then the detection is FP!
                         if not R['det'][jmax]:
-                            tp[d] = 1.
-                            R['det'][jmax] = 1
-                        else:
-                            fp[d] = 1.
-                else:
-                    fp[d] = 1.
+                            ret_list[0].append(sorted_scores[d])
+                            ret_list[1].append(R['cl'])
+        ret[classname] = ret_list
+
+    return ret
+
+def plot_prob_cl_corr(classname, prob_list, cl_list):
+    pass
+
+
+if __name__ == '__main__':
+    rgz_cnn_data = '/Users/Chen/proj/rgz_rcnn/data/RGZdevkit2017' #TODO passed in as an argument
+    imagesetfile = osp.join(rgz_cnn_data,
+                        'RGZ2017/ImageSets/Main/testD4.txt')
+    anno_file = osp.join(rgz_cnn_data,
+                        'annotations_cache/annots.pkl')
+    detpath = osp.join(rgz_cnn_data,
+                        'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
+    catalog_csv = osp.join(rgz_cnn_data,
+                        'RGZ2017/ImageSets/Main/full_catalogue.csv')
+    ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
+    for k, v in ret.items():
+        print(k, len(v[0]), len(v[1]))
