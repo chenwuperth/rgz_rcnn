@@ -17,6 +17,7 @@ all sources in the same subject share the same CL.
 import os
 import cPickle
 import os.path as osp
+from collections import defaultdict
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,6 +46,39 @@ def load_cl(catalog_csv, suffix='_infraredctmask'):
         cat = catline.split(',')
         kv[cat[1] + suffix] = float(cat[-2])
     return kv
+
+def filter_detections(detpath, outpath, threshold=0.8):
+    """
+    Given a subject (image),
+        remove all sources whose Probability is less than threshold
+        if none sources are left, retain the one with the highest Probability
+    """
+    all_dets = defaultdict(list) # key: image_name, value: a list of dets
+    out_list = defaultdict(list) # key: class_name, value: a list of det strings
+    for classname in CLASSES[1:]:
+        detfile = detpath.format(classname)
+        with open(detfile, 'r') as f:
+            lines = f.readlines()
+        splitlines = [x.strip().split(' ') for x in lines]
+        for det in splitlines:
+            det.append(classname)
+            all_dets[det[0]].append(det)
+
+    for _, v in all_dets.items():
+        v.sort(key=lambda x: -float(x[1])) # sort on descending order
+        if (float(v[0][1]) < threshold):
+            out_list[v[0][-1]].append(' '.join(v[0][0:-1]))
+        else:
+            for vi in v:
+                if (float(vi[1]) >= threshold):
+                    #print(vi[1])
+                    out_list[vi[-1]].append(' '.join(vi[0:-1]))
+
+    for classname, v in out_list.items():
+        outfile = outpath.format(classname)
+        with open(outfile, 'w') as fout:
+            fout.write(os.linesep.join(v))
+
 
 def get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
     """
@@ -137,7 +171,7 @@ def plot_prob_cl_corr(classname, prob_list, cl_list):
     plt.scatter(cl_list, prob_list)
     plt.show()
 
-def plot_prob_cl_box(prob_cl_mapping_list):
+def plot_prob_cl_box(prob_cl_mapping_list, plot_outliers=False):
     ks = prob_cl_mapping_list.keys()
     ks.sort()
     for i, classname in enumerate(ks):
@@ -159,10 +193,16 @@ def plot_prob_cl_box(prob_cl_mapping_list):
                 raise Exception("invalid CL: %.3f" % cl)
             data[ind].append(prob)
         ax = plt.subplot(3, 2, i + 1)
-        plt.boxplot(data, labels=labels, sym='+')
+        if (plot_outliers):
+            symb = '+'
+        else:
+            symb = ''
+        plt.boxplot(data, labels=labels, sym=symb)
         plt.grid(True, linestyle='-', which='major', color='lightgrey',
                alpha=0.5, axis='y')
         plt.ylabel('Probability')
+        # if (not plot_outliers):
+        #     plt.ylim([0.6, 1.0])
         ax.set_title('Prob vs. CL for %s' % classname)
 
     plt.tight_layout()
@@ -174,10 +214,14 @@ if __name__ == '__main__':
                         'RGZ2017/ImageSets/Main/testD4.txt')
     anno_file = osp.join(rgz_cnn_data,
                         'annotations_cache/annots.pkl')
-    detpath = osp.join(rgz_cnn_data,
-                        'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
     catalog_csv = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/full_catalogue.csv')
+    outpath = osp.join(rgz_cnn_data,
+                        'results/RGZ2017/Filtered/comp4_det_testD4_{0}.txt')
+    # detpath = osp.join(rgz_cnn_data,
+    #                     'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
+    detpath = outpath
+    #filter_detections(detpath, outpath)
     ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
     plot_prob_cl_box(ret)
     # for k, v in ret.items():
