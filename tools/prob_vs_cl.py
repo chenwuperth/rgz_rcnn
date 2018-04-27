@@ -137,6 +137,36 @@ def plot_prob_cl_corr(classname, prob_list, cl_list):
     plt.scatter(cl_list, prob_list)
     plt.show()
 
+def plot_prob_cl_box(prob_cl_mapping_list):
+    ks = prob_cl_mapping_list.keys()
+    ks.sort()
+    for i, classname in enumerate(ks):
+        v = prob_cl_mapping_list[classname]
+        data = [[], [], [], []]
+        labels = ['[0.6, 0.7)', '[0.7, 0.8)', '[0.8, 0.9)', '[0.9, 1.0]']
+        prob_list = v[0]
+        cl_list = v[1]
+        for cl, prob in zip(cl_list, prob_list):
+            if 0.6 <= cl < 0.7:
+                ind = 0
+            elif 0.7 <= cl < 0.8:
+                ind = 1
+            elif 0.8 <= cl < 0.9:
+                ind = 2
+            elif 0.9 <= cl <= 1.0:
+                ind = 3
+            else:
+                raise Exception("invalid CL: %.3f" % cl)
+            data[ind].append(prob)
+        ax = plt.subplot(3, 2, i + 1)
+        plt.boxplot(data, labels=labels, sym='+')
+        plt.grid(True, linestyle='-', which='major', color='lightgrey',
+               alpha=0.5, axis='y')
+        plt.ylabel('Probability')
+        ax.set_title('Prob vs. CL for %s' % classname)
+
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == '__main__':
     rgz_cnn_data = '/Users/Chen/proj/rgz_rcnn/data/RGZdevkit2017' #TODO passed in as an argument
@@ -149,6 +179,7 @@ if __name__ == '__main__':
     catalog_csv = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/full_catalogue.csv')
     ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
-    for k, v in ret.items():
-        print(k, len(v[0]), len(v[1]))
-        plot_prob_cl_corr(k, v[0], v[1])
+    plot_prob_cl_box(ret)
+    # for k, v in ret.items():
+    #     print(k, len(v[0]), len(v[1]))
+    #     plot_prob_cl_corr(k, v[0], v[1])
