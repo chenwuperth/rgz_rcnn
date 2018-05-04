@@ -13,6 +13,7 @@ This script compares the class probabilities produced by Claran and the RGZ
 Consensus Level (CL) for each source. Note that in the current RGZ truth,
 all sources in the same subject share the same CL.
 """
+import _init_paths
 
 import os
 import cPickle
@@ -22,8 +23,44 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
+# classes that characterise both components and peaks
 CLASSES =  ('__background__', # always index 0
                             '1_1', '1_2', '1_3', '2_2', '2_3', '3_3')
+
+COMP_CLASSES = ['__background__', '1_', '2_', '3_'] # component class only
+
+def voc_ap(rec, prec, use_07_metric=False):
+    """ ap = voc_ap(rec, prec, [use_07_metric])
+    Compute VOC AP given precision and recall.
+    If use_07_metric is true, uses the
+    VOC 07 11 point method (default:False).
+    """
+    if use_07_metric:
+        # 11 point metric
+        ap = 0.
+        for t in np.arange(0., 1.1, 0.1):
+            if np.sum(rec >= t) == 0:
+                p = 0
+            else:
+                p = np.max(prec[rec >= t])
+            ap = ap + p / 11.
+    else:
+        # correct AP calculation
+        # first append sentinel values at the end
+        mrec = np.concatenate(([0.], rec, [1.]))
+        mpre = np.concatenate(([0.], prec, [0.]))
+
+        # compute the precision envelope
+        for i in range(mpre.size - 1, 0, -1):
+            mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
+
+        # to calculate area under PR curve, look for points
+        # where X axis (recall) changes value
+        i = np.where(mrec[1:] != mrec[:-1])[0]
+
+        # and sum (\Delta recall) * prec
+        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
+    return ap
 
 def load_annotations(cachefile):
     if (not osp.exists(cachefile)):
@@ -79,6 +116,115 @@ def filter_detections(detpath, outpath, threshold=0.8):
         with open(outfile, 'w') as fout:
             fout.write(os.linesep.join(v))
 
+#TODO refactor the following two functions due to overlapping
+def get_component_map(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
+    """
+    Get component-only mAP score
+
+    imagesetfile:   Text file containing the list of images, one image per line
+                    e.g. data/RGZdevkit2017/RGZ2017/ImageSets/Main/testD4.txt
+
+    anno_file:      annotation pickle file (i.e. the groud-truth)
+                    e.g. data/RGZdevkit2017/annotations_cache/annots.pkl
+
+    detpath:        Path to detections
+                    e.g. data/RGZdevkit2017/results/RGZ2017/Main/comp4_det_testD4_{0}.txt
+
+    catalog_csv:    e.g
+                    data/RGZdevkit2017/RGZ2017/ImageSets/Main/full_catalogue.csv
+    """
+    recs = load_annotations(anno_file) # ground-truth for all classes
+    with open(imagesetfile, 'r') as f:
+        lines = f.readlines()
+    imagenames = [x.strip() for x in lines]
+
+    for classname in COMP_CLASSES[1:]:
+        class_recs = dict() # class-specific ground truth
+        npos = 0
+        for imagename in imagenames:
+            R = [obj for obj in recs[imagename] if obj['name'].startswith(classname)]
+            bbox = np.array([x['bbox'] for x in R])
+            difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
+            det = [False] * len(R)
+            npos = npos + sum(~difficult)
+            class_recs[imagename] = {'bbox': bbox,
+                                     'difficult': difficult,
+                                     'det': det}
+
+        # merge into a big list e.g. 2C_2P and 2C_3P will join the 2C list
+        lines = []
+        for c_p_cls in CLASSES:
+            if (c_p_cls.startswith(classname)):
+                detfile = detpath.format(c_p_cls)
+                with open(detfile, 'r') as f:
+                    lines_c = f.readlines()
+                lines += lines_c
+
+        if any(lines) == 1:
+            splitlines = [x.strip().split(' ') for x in lines]
+            image_ids = [x[0] for x in splitlines]
+            confidence = np.array([float(x[1]) for x in splitlines])
+            BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
+
+            # sort by confidence
+            sorted_ind = np.argsort(-confidence)
+            sorted_scores = np.sort(-confidence)
+            BB = BB[sorted_ind, :]
+            image_ids = [image_ids[x] for x in sorted_ind]
+
+            # go down dets and mark TPs and FPs
+            nd = len(image_ids)
+            tp = np.zeros(nd)
+            fp = np.zeros(nd)
+            for d in range(nd):
+                R = class_recs[image_ids[d]]
+                bb = BB[d, :].astype(float)
+                ovmax = -np.inf
+                BBGT = R['bbox'].astype(float)
+
+                if BBGT.size > 0:
+                    # compute overlaps
+                    # intersection
+                    ixmin = np.maximum(BBGT[:, 0], bb[0])
+                    iymin = np.maximum(BBGT[:, 1], bb[1])
+                    ixmax = np.minimum(BBGT[:, 2], bb[2])
+                    iymax = np.minimum(BBGT[:, 3], bb[3])
+                    iw = np.maximum(ixmax - ixmin + 1., 0.)
+                    ih = np.maximum(iymax - iymin + 1., 0.)
+                    inters = iw * ih
+
+                    # union
+                    uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+                           (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+                           (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+
+                    overlaps = inters / uni
+                    ovmax = np.max(overlaps)
+                    jmax = np.argmax(overlaps)
+
+                if ovmax > ovthresh:
+                    if not R['difficult'][jmax]:
+                        if not R['det'][jmax]:
+                            tp[d] = 1.
+                            R['det'][jmax] = 1
+                        else:
+                            fp[d] = 1.
+                else:
+                    fp[d] = 1.
+
+            # compute precision recall
+            fp = np.cumsum(fp)
+            tp = np.cumsum(tp)
+            rec = tp / float(npos)
+            # avoid divide by zero in case the first detection matches a difficult
+            # ground truth
+            prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+            ap = voc_ap(rec, prec)
+            print(classname, ap)
+    else:
+         rec = -1
+         prec = -1
+         ap = -1
 
 def get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
     """
@@ -177,7 +323,7 @@ def plot_prob_cl_box(prob_cl_mapping_list, plot_outliers=False):
     for i, classname in enumerate(ks):
         v = prob_cl_mapping_list[classname]
         data = [[], [], [], []]
-        labels = ['[0.6, 0.7)', '[0.7, 0.8)', '[0.8, 0.9)', '[0.9, 1.0]']
+        labels = ['0.6~0.7', '0.7~0.8', '0.8~0.9', '0.9~1.0']
         prob_list = v[0]
         cl_list = v[1]
         for cl, prob in zip(cl_list, prob_list):
@@ -198,14 +344,17 @@ def plot_prob_cl_box(prob_cl_mapping_list, plot_outliers=False):
         else:
             symb = ''
         plt.boxplot(data, labels=labels, sym=symb)
+        plt.xlabel('Consensus level')
         plt.grid(True, linestyle='-', which='major', color='lightgrey',
                alpha=0.5, axis='y')
-        plt.ylabel('Probability')
+        if (i % 2 == 0):
+            #plt.ylabel('Classification probability')
+            plt.ylabel('Probability')
         # if (not plot_outliers):
         #     plt.ylim([0.6, 1.0])
-        ax.set_title('Prob vs. CL for %s' % classname)
-
-    plt.tight_layout()
+        ax.set_title('%s' % classname.replace('_', 'C_') + 'P')
+    #plt.suptitle('Probability vs. Consensus level')
+    plt.tight_layout(h_pad=0.0)
     plt.show()
 
 if __name__ == '__main__':
@@ -213,17 +362,20 @@ if __name__ == '__main__':
     imagesetfile = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/testD4.txt')
     anno_file = osp.join(rgz_cnn_data,
-                        'annotations_cache/annots.pkl')
+                        'annotations_cache/annots_D4.pkl')
     catalog_csv = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/full_catalogue.csv')
-    outpath = osp.join(rgz_cnn_data,
-                        'results/RGZ2017/Filtered/comp4_det_testD4_{0}.txt')
-    # detpath = osp.join(rgz_cnn_data,
-    #                     'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
-    detpath = outpath
+    #outpath = osp.join(rgz_cnn_data,
+    #                    'results/RGZ2017/Filtered/comp4_det_testD4_{0}.txt')
+    #detpath = outpath
+    detpath = osp.join(rgz_cnn_data,
+                         'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
+
     #filter_detections(detpath, outpath)
-    ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
-    plot_prob_cl_box(ret)
+    #ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
+    #plot_prob_cl_box(ret)
+    get_component_map(imagesetfile, anno_file, detpath, catalog_csv)
+
     # for k, v in ret.items():
     #     print(k, len(v[0]), len(v[1]))
     #     plot_prob_cl_corr(k, v[0], v[1])
