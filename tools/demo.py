@@ -196,7 +196,7 @@ def parse_args():
         print('Infrared png %s not found' % args.ir_png)
         sys.exit(1)
 
-    if (not args.model in ['D4', 'D5']):
+    if (not args.model in ['D4', 'D5', 'D1']):
         print('Unknown model: %s' % args.model)
         sys.exit(1)
 
@@ -219,6 +219,7 @@ def hard_code_cfg():
     cfg.TEST.RPN_POST_NMS_TOP_N = 5
     cfg.TEST.NMS = 0.3
     cfg.TEST.RPN_NMS_THRESH = 0.5
+    cfg.TEST.SCALES = (600,)
 
 def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
     """
@@ -233,7 +234,10 @@ def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #hide tensorflow warnings
     args = parse_args()
-    im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png, model=args.model)
+    if ('D1' == args.model):
+        im_file = args.ir_png # treat radio png as ir png
+    else:
+        im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png, model=args.model)
     #print("im_file", im_file)
     if (im_file is None):
         print("Error in generating contours")
