@@ -112,8 +112,9 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     im = cv2.resize(im, (show_img_size, show_img_size))
     im = im[:, :, (2, 1, 0)]
     ax.imshow(im, aspect='equal')
-    patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False)
-    ax.add_patch(patch_contour)
+    if (fits_fn is not None):
+        patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False)
+        ax.add_patch(patch_contour)
     NMS_THRESH = cfg.TEST.NMS #cfg.TEST.RPN_NMS_THRESH # 0.3
 
     tt_vis = 0
@@ -182,23 +183,34 @@ def parse_args():
                         action='store_true', default=False)
     parser.add_argument('--model', dest='model', help='which pre-trained model to load',
                         default='D4')
+    parser.add_argument('--radio-png', dest='radio_png',
+                        help='full path of the radio png file (only for D1 method)',
+                        default=None, type=str)
 
     args = parser.parse_args()
-    if (args.radio_fits is None or args.ir_png is None):
-        parser.print_help()
-        sys.exit(1)
+    if ('D1' != args.model):
+        if (args.radio_fits is None or args.ir_png is None):
+            parser.print_help()
+            sys.exit(1)
 
-    if (not osp.exists(args.radio_fits)):
-        print('Radio fits %s not found' % args.radio_fits)
-        sys.exit(1)
+        if (not osp.exists(args.radio_fits)):
+            print('Radio fits %s not found' % args.radio_fits)
+            sys.exit(1)
 
-    if (not osp.exists(args.ir_png)):
-        print('Infrared png %s not found' % args.ir_png)
-        sys.exit(1)
+        if (not osp.exists(args.ir_png)):
+            print('Infrared png %s not found' % args.ir_png)
+            sys.exit(1)
 
-    if (not args.model in ['D4', 'D5', 'D1']):
-        print('Unknown model: %s' % args.model)
-        sys.exit(1)
+        if (not args.model in ['D4', 'D5', 'D1']):
+            print('Unknown model: %s' % args.model)
+            sys.exit(1)
+    else:
+        if (args.radio_png is None):
+            print('D1 method must specify radio png path with option "--radio-png"')
+            sys.exit(1)
+        elif (not osp.exists(args.radio_png)):
+            print('Radio png not found: %s' % args.radio_png)
+            sys.exit(1)
 
     if args.device.lower() == 'gpu':
         cfg.USE_GPU_NMS = True
@@ -235,9 +247,11 @@ if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #hide tensorflow warnings
     args = parse_args()
     if ('D1' == args.model):
-        im_file = args.ir_png # treat radio png as ir png
+        im_file = args.radio_png
+        vis_file = args.radio_png
     else:
         im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png, model=args.model)
+        vis_file = args.ir_png
     #print("im_file", im_file)
     if (im_file is None):
         print("Error in generating contours")
@@ -258,19 +272,20 @@ if __name__ == '__main__':
     print("Done in %.3f seconds" % (time.time() - stt))
     sys.stdout.write("Detecting radio sources... ")
     sys.stdout.flush()
-    ret = demo(sess, net, im_file, args.ir_png, args.radio_fits, conf_thresh=args.conf_thresh,
+    ret = demo(sess, net, im_file, vis_file, args.radio_fits, conf_thresh=args.conf_thresh,
                eval_class=(not args.eval_eoi))
     if (-1 == ret):
         print('Fail to detect in %s' % args.radio_fits)
     else:
-        im_name = osp.basename(args.ir_png)
+        im_name = osp.basename(im_file)
         output_fn = osp.join(args.fig_path, im_name.replace('.png', '_pred.png'))
         plt.savefig(output_fn, dpi=150)
         plt.close()
         print('Detection saved to %s' % output_fn)
-        for trf in [im_file]:
-            if (osp.exists(trf)):
-                try:
-                    os.remove(trf)
-                except:
-                    pass
+        if ('D1' != args.model):
+            for trf in [im_file]:
+                if (osp.exists(trf)):
+                    try:
+                        os.remove(trf)
+                    except:
+                        pass
