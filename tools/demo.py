@@ -37,6 +37,46 @@ colors_ = cycle(['cyan', 'yellow', 'magenta'])
 
 def vis_detections(im, class_name, dets,ax, thresh=0.5):
     """Draw detected bounding boxes."""
+    inds = np.where(dets[:, -1] >= thresh)[0]
+    if len(inds) == 0:
+        # get a box with a highest score
+        # try:
+        #     max_score = np.max(dets[:, -1])
+        #     inds = np.where(dets[:, -1] == max_score)[0][0:1]
+        # except Exception as exp:
+        #     print('inds == 0, but %s' % str(exp))
+        return len(inds)
+    #inds = range(dets.shape[0])
+    for i in inds:
+        bbox = dets[i, :4]
+        score = dets[i, -1]
+
+        ax.add_patch(
+            plt.Rectangle((bbox[0], bbox[1]),
+                          bbox[2] - bbox[0],
+                          bbox[3] - bbox[1], fill=False,
+                          edgecolor=next(colors_), linewidth=2.5)
+            )
+        #cns = class_name.split('_')
+        #class_name = '%sC%sP' % (cns[0], cns[1])
+        ax.text(bbox[0], bbox[1] - 2,
+                '{:s} {:.2f}'.format(class_name.replace('_', 'C_') + 'P', score),
+                bbox=dict(facecolor='None', alpha=0.4, edgecolor='None'),
+                fontsize=14, color='white')
+                #bbox=dict(facecolor='None', alpha=0.4, edgecolor='None'),
+                #fontsize=25, color='black')
+
+    # ax.set_title(('{} detections with '
+    #               'p({} | box) >= {:.1f}').format(class_name, class_name,
+    #                                               thresh),
+    #               fontsize=14)
+    plt.axis('off')
+    #plt.tight_layout()
+    plt.draw()
+    return len(inds)
+
+def vis_detections_new(im, class_name, dets, ax, thresh=0.5):
+    """Draw detected bounding boxes."""
     inds = np.where(dets[:, -2] >= thresh)[0]
     if len(inds) == 0:
         thresh = np.max(dets[:, -2])
@@ -97,6 +137,7 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     timer.toc()
     sys.stdout.write('Done in {:.3f} secs'.format(timer.total_time))
     sys.stdout.flush()
+    print(scores)
 
     im = cv2.imread(vis_file)
 
@@ -120,42 +161,45 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     tt_vis = 0
     bbox_img = []
     bscore_img = []
-    if (eval_class):
-        for cls_ind, cls in enumerate(CLASSES[1:]):
-            cls_ind += 1 # because we skipped background
-            cls_boxes = boxes[:, 4 * cls_ind : 4 * (cls_ind + 1)]
-            cls_scores = scores[:, cls_ind]
-            dets = np.hstack((cls_boxes,
-                              cls_scores[:, np.newaxis]))#.astype(np.float32)
-            keep = nms(dets, NMS_THRESH)
-            #dets = dets[keep, :]
-            dets = np.hstack((dets, np.ones([dets.shape[0], 1]) * cls_ind))
-            if (dets.shape[0] > 0):
-                bbox_img.append(dets)
-                bscore_img.append(np.reshape(dets[:, -2], [-1, 1]))
-    else:
-        for eoi_ind, eoi in enumerate(boxes):
-            eoi_scores = scores[eoi_ind, 1:] # skip background
-            cls_ind = np.argmax(eoi_scores) + 1 # add the background index back
-            cls_boxes = boxes[eoi_ind, 4 * cls_ind : 4 * (cls_ind + 1)]
-            cls_scores = scores[eoi_ind, cls_ind]
-            dets = np.hstack((np.reshape(cls_boxes, [1, -1]),
-                              np.reshape(cls_scores, [-1, 1])))#.astype(np.float32)
-            dets = np.hstack((dets, np.ones([dets.shape[0], 1]) * cls_ind))
-            bbox_img.append(dets)
-            bscore_img.append(np.reshape(dets[:, -2], [-1, 1]))
+    num_sources = 0
+    #if (eval_class):
+    for cls_ind, cls in enumerate(CLASSES[1:]):
+        cls_ind += 1 # because we skipped background
+        cls_boxes = boxes[:, 4 * cls_ind : 4 * (cls_ind + 1)]
+        cls_scores = scores[:, cls_ind]
+        dets = np.hstack((cls_boxes,
+                          cls_scores[:, np.newaxis]))#.astype(np.float32)
+        keep = nms(dets, NMS_THRESH)
+        dets = dets[keep, :]
+        num_sources += vis_detections(im, cls, dets, ax, thresh=conf_thresh)
+        #dets = np.hstack((dets, np.ones([dets.shape[0], 1]) * cls_ind))
+        # if (dets.shape[0] > 0):
+        #     bbox_img.append(dets)
+        #     bscore_img.append(np.reshape(dets[:, -2], [-1, 1]))
+    # else:
+    #     for eoi_ind, eoi in enumerate(boxes):
+    #         eoi_scores = scores[eoi_ind, 1:] # skip background
+    #         cls_ind = np.argmax(eoi_scores) + 1 # add the background index back
+    #         cls_boxes = boxes[eoi_ind, 4 * cls_ind : 4 * (cls_ind + 1)]
+    #         cls_scores = scores[eoi_ind, cls_ind]
+    #         dets = np.hstack((np.reshape(cls_boxes, [1, -1]),
+    #                           np.reshape(cls_scores, [-1, 1])))#.astype(np.float32)
+    #         dets = np.hstack((dets, np.ones([dets.shape[0], 1]) * cls_ind))
+    #         bbox_img.append(dets)
+    #         bscore_img.append(np.reshape(dets[:, -2], [-1, 1]))
+    #
+    # boxes_im = np.vstack(bbox_img)
+    # scores_im = np.vstack(bscore_img)
+    #
+    # #if (not eval_class):
+    # # a numpy float is a C double, so need to use float32
+    # keep = nms(boxes_im[:, :-1].astype(np.float32), NMS_THRESH)
+    # boxes_im = boxes_im[keep, :]
+    # scores_im = scores_im[keep, :]
+    #
+    # keep_indices = range(boxes_im.shape[0])
+    #num_sources = vis_detections(im, None, boxes_im[keep_indices, :], ax, thresh=conf_thresh)
 
-    boxes_im = np.vstack(bbox_img)
-    scores_im = np.vstack(bscore_img)
-
-    #if (not eval_class):
-    # a numpy float is a C double, so need to use float32
-    keep = nms(boxes_im[:, :-1].astype(np.float32), NMS_THRESH)
-    boxes_im = boxes_im[keep, :]
-    scores_im = scores_im[keep, :]
-
-    keep_indices = range(boxes_im.shape[0])
-    num_sources = vis_detections(im, None, boxes_im[keep_indices, :], ax, thresh=conf_thresh)
     print(', found %d sources' % num_sources)
     return 0
 
@@ -232,6 +276,7 @@ def hard_code_cfg():
     cfg.TEST.NMS = 0.3
     cfg.TEST.RPN_NMS_THRESH = 0.5
     cfg.TEST.SCALES = (600,)
+    cfg.TEST.MAX_SIZE = 2000
 
 def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
     """
