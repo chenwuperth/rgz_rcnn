@@ -154,7 +154,8 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     im = im[:, :, (2, 1, 0)]
     ax.imshow(im, aspect='equal')
     if (fits_fn is not None):
-        patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False)
+        patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False,
+                             get_path_patch_only=True)
         ax.add_patch(patch_contour)
     NMS_THRESH = cfg.TEST.NMS #cfg.TEST.RPN_NMS_THRESH # 0.3
 
