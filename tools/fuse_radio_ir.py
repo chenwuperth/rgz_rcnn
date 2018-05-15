@@ -71,7 +71,10 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True, new_size=None,
         im_ir = get_masked_ir(fits_fn, None, ir_fn, output_dir, cs,
                            sigma_level=sigma_level, replace_mask_with_mean=True)
     else:
-        im_ir = cv2.imread(ir_fn)
+        if (type(ir_fn) == str):
+            im_ir = cv2.imread(ir_fn)
+        else:
+            im_ir = ir_fn
     if (new_size is not None and (new_size != im_ir.shape[0])):
         print("resizing im_ir to {0}".format(new_size))
         im_ir = cv2.resize(im_ir, (new_size, new_size),
