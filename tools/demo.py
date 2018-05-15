@@ -55,7 +55,7 @@ def vis_detections(im, class_name, dets,ax, thresh=0.5):
             plt.Rectangle((bbox[0], bbox[1]),
                           bbox[2] - bbox[0],
                           bbox[3] - bbox[1], fill=False,
-                          edgecolor=next(colors_), linewidth=2.5)
+                          edgecolor=next(colors_), linewidth=1.0)
             )
         #cns = class_name.split('_')
         #class_name = '%sC%sP' % (cns[0], cns[1])
@@ -245,7 +245,7 @@ def parse_args():
             print('Infrared png %s not found' % args.ir_png)
             sys.exit(1)
 
-        if (not args.model in ['D4', 'D5', 'D1']):
+        if (not args.model in ['D4', 'D5', 'D1', 'D3']):
             print('Unknown model: %s' % args.model)
             sys.exit(1)
     else:
@@ -286,7 +286,11 @@ def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
         nsz = None
     else:
         nsz = cfg.TEST.SCALES[0] #i.e. 600
-    return fuse(radio_fn, ir_fn, out_dir, new_size=nsz)
+        if ('D3' == model):
+            mask_ir = False
+        else:
+            mask_ir = True
+    return fuse(radio_fn, ir_fn, out_dir, new_size=nsz, mask_ir=mask_ir)
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #hide tensorflow warnings
