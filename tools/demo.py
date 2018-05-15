@@ -284,12 +284,13 @@ def fuse_radio_ir_4_pred(radio_fn, ir_fn, out_dir='/tmp', model='D4'):
     """
     if (model != 'D5'):
         nsz = None
-    else:
-        nsz = cfg.TEST.SCALES[0] #i.e. 600
         if ('D3' == model):
             mask_ir = False
         else:
             mask_ir = True
+    else:
+        nsz = cfg.TEST.SCALES[0] #i.e. 600
+        mask_ir = True
     return fuse(radio_fn, ir_fn, out_dir, new_size=nsz, mask_ir=mask_ir)
 
 if __name__ == '__main__':
