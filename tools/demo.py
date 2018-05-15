@@ -309,7 +309,10 @@ if __name__ == '__main__':
         sys.exit(1)
     hard_code_cfg()
     net = get_network('rgz_test')
-    model_weight = osp.join(get_rgz_root(), 'data/pretrained_model/rgz/%s/VGGnet_fast_rcnn-80000' % args.model)
+    iter_num = 80000
+    if ('D3' == args.model):
+        iter_num = 60000
+    model_weight = osp.join(get_rgz_root(), 'data/pretrained_model/rgz/%s/VGGnet_fast_rcnn-%d' % (args.model, iter_num))
     if (not osp.exists(model_weight + '.index')):
         print("Fail to load rgz model, have you done \'python download_data.py\' already?")
         sys.exit(1)
