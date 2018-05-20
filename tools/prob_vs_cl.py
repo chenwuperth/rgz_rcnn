@@ -516,7 +516,7 @@ if __name__ == '__main__':
     #plot_prob_cl_box(ret)
     #get_component_map(imagesetfile, anno_file, detpath, catalog_csv)
     compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
-                            subset_file=subsetf, ovthresh=0.3)
+                            subset_file=subsetf, ovthresh=0.5)
 
     # for k, v in ret.items():
     #     print(k, len(v[0]), len(v[1]))
