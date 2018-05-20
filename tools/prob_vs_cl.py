@@ -116,6 +116,143 @@ def filter_detections(detpath, outpath, threshold=0.8):
         with open(outfile, 'w') as fout:
             fout.write(os.linesep.join(v))
 
+def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subset_file, ovthresh=0.1):
+    """
+    Get mAP score from a subset of the FirstIDs
+
+    imagesetfile:   Text file containing the list of images, one image per line
+                    e.g. data/RGZdevkit2017/RGZ2017/ImageSets/Main/testD4.txt
+
+    anno_file:      annotation pickle file (i.e. the groud-truth)
+                    e.g. data/RGZdevkit2017/annotations_cache/annots.pkl
+
+    detpath:        Path to detections
+                    e.g. data/RGZdevkit2017/results/RGZ2017/Main/comp4_det_testD4_{0}.txt
+
+    catalog_csv:    e.g
+                    data/RGZdevkit2017/RGZ2017/ImageSets/Main/full_catalogue.csv
+    """
+    recs = load_annotations(anno_file) # ground-truth for all classes
+    with open(imagesetfile, 'r') as f:
+        lines = f.readlines()
+    imagenames = [x.strip() for x in lines]
+
+    with open(subset_file, 'r') as fi:
+        subsets = fi.readlines()
+    subsets = set([x.strip() for x in subsets])
+    #print(subsets)
+
+    for classname in CLASSES[1:]:
+    #for classname in COMP_CLASSES[1:]:
+        class_recs = dict() # class-specific ground truth
+        npos = 0
+        for imagename in imagenames:
+            if (not imagename.split('_')[0] in subsets):
+                continue
+            R = [obj for obj in recs[imagename] if obj['name'].startswith(classname)]
+            bbox = np.array([x['bbox'] for x in R])
+            difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
+            det = [False] * len(R)
+            npos = npos + sum(~difficult)
+            class_recs[imagename] = {'bbox': bbox,
+                                     'difficult': difficult,
+                                     'det': det}
+        # read dets
+        detfile = detpath.format(classname)
+        with open(detfile, 'r') as f:
+            all_lines = f.readlines()
+
+        # filter based on subsets
+        # lines = all_lines
+        def filter_lines(all_lines_p):
+            lines = []
+            for x in all_lines_p:
+                sp = x.strip().split(' ')
+                #print(sp)
+                first_id = sp[0].split('_')[0]
+                score = float(sp[1])
+                if (first_id in subsets and score > 0.0):
+                    #print("got it", first_id)
+                    lines.append(x)
+            return lines
+
+        lines = filter_lines(all_lines)
+
+        # merge into a big list e.g. 2C_2P and 2C_3P will join the 2C list
+        # lines = []
+        # for c_p_cls in CLASSES:
+        #     if (c_p_cls.startswith(classname)):
+        #         detfile = detpath.format(c_p_cls)
+        #         with open(detfile, 'r') as f:
+        #             lines_c = f.readlines()
+        #         lines += lines_c
+
+        if any(lines) == 1:
+            splitlines = [x.strip().split(' ') for x in lines]
+            image_ids = [x[0] for x in splitlines]
+            confidence = np.array([float(x[1]) for x in splitlines])
+            BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
+
+            # sort by confidence
+            sorted_ind = np.argsort(-confidence)
+            sorted_scores = np.sort(-confidence)
+            BB = BB[sorted_ind, :]
+            image_ids = [image_ids[x] for x in sorted_ind]
+
+            # go down dets and mark TPs and FPs
+            nd = len(image_ids)
+            tp = np.zeros(nd)
+            fp = np.zeros(nd)
+            for d in range(nd):
+                R = class_recs[image_ids[d]]
+                bb = BB[d, :].astype(float)
+                ovmax = -np.inf
+                BBGT = R['bbox'].astype(float)
+
+                if BBGT.size > 0:
+                    # compute overlaps
+                    # intersection
+                    ixmin = np.maximum(BBGT[:, 0], bb[0])
+                    iymin = np.maximum(BBGT[:, 1], bb[1])
+                    ixmax = np.minimum(BBGT[:, 2], bb[2])
+                    iymax = np.minimum(BBGT[:, 3], bb[3])
+                    iw = np.maximum(ixmax - ixmin + 1., 0.)
+                    ih = np.maximum(iymax - iymin + 1., 0.)
+                    inters = iw * ih
+
+                    # union
+                    uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+                           (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+                           (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+
+                    overlaps = inters / uni
+                    ovmax = np.max(overlaps)
+                    jmax = np.argmax(overlaps)
+
+                if ovmax > ovthresh:
+                    if not R['difficult'][jmax]:
+                        if not R['det'][jmax]:
+                            tp[d] = 1.
+                            R['det'][jmax] = 1
+                        else:
+                            fp[d] = 1.
+                else:
+                    fp[d] = 1.
+
+            # compute precision recall
+            fp = np.cumsum(fp)
+            tp = np.cumsum(tp)
+            rec = tp / float(npos)
+            # avoid divide by zero in case the first detection matches a difficult
+            # ground truth
+            prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+            ap = voc_ap(rec, prec)
+            print(classname, ap)
+    else:
+         rec = -1
+         prec = -1
+         ap = -1
+
 #TODO refactor the following two functions due to overlapping
 def get_component_map(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
     """
@@ -359,22 +496,27 @@ def plot_prob_cl_box(prob_cl_mapping_list, plot_outliers=False):
 
 if __name__ == '__main__':
     rgz_cnn_data = '/Users/Chen/proj/rgz_rcnn/data/RGZdevkit2017' #TODO passed in as an argument
+    model_v = 3
     imagesetfile = osp.join(rgz_cnn_data,
-                        'RGZ2017/ImageSets/Main/testD4.txt')
+                        'RGZ2017/ImageSets/Main/testD%d.txt' % model_v)
     anno_file = osp.join(rgz_cnn_data,
-                        'annotations_cache/annots_D4.pkl')
+                        'annotations_cache/annots_D%d.pkl' % model_v)
     catalog_csv = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/full_catalogue.csv')
     #outpath = osp.join(rgz_cnn_data,
     #                    'results/RGZ2017/Filtered/comp4_det_testD4_{0}.txt')
     #detpath = outpath
     detpath = osp.join(rgz_cnn_data,
-                         'results/RGZ2017/Main/comp4_det_testD4_{0}.txt')
+                         'results/RGZ2017/Main/comp4_det_testD%d_{0}.txt' % model_v)
+    subsetf = osp.join(rgz_cnn_data,
+                         'RGZ2017/ImageSets/Main/multisource.txt')
 
     #filter_detections(detpath, outpath)
     #ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
     #plot_prob_cl_box(ret)
-    get_component_map(imagesetfile, anno_file, detpath, catalog_csv)
+    #get_component_map(imagesetfile, anno_file, detpath, catalog_csv)
+    compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
+                            subset_file=subsetf, ovthresh=0.5)
 
     # for k, v in ret.items():
     #     print(k, len(v[0]), len(v[1]))
