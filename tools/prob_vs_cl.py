@@ -116,7 +116,7 @@ def filter_detections(detpath, outpath, threshold=0.8):
         with open(outfile, 'w') as fout:
             fout.write(os.linesep.join(v))
 
-def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subset_file, ovthresh=0.1):
+def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subset_file, ovthresh=0.5):
     """
     Get mAP score from a subset of the FirstIDs
 
@@ -142,8 +142,8 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subse
     subsets = set([x.strip() for x in subsets])
     #print(subsets)
 
-    for classname in CLASSES[1:]:
-    #for classname in COMP_CLASSES[1:]:
+    #for classname in CLASSES[1:]:
+    for classname in COMP_CLASSES[1:]:
         class_recs = dict() # class-specific ground truth
         npos = 0
         for imagename in imagenames:
@@ -158,9 +158,9 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subse
                                      'difficult': difficult,
                                      'det': det}
         # read dets
-        detfile = detpath.format(classname)
-        with open(detfile, 'r') as f:
-            all_lines = f.readlines()
+        # detfile = detpath.format(classname)
+        # with open(detfile, 'r') as f:
+        #     all_lines = f.readlines()
 
         # filter based on subsets
         # lines = all_lines
@@ -176,16 +176,16 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv, subse
                     lines.append(x)
             return lines
 
-        lines = filter_lines(all_lines)
+        #lines = filter_lines(all_lines)
 
         # merge into a big list e.g. 2C_2P and 2C_3P will join the 2C list
-        # lines = []
-        # for c_p_cls in CLASSES:
-        #     if (c_p_cls.startswith(classname)):
-        #         detfile = detpath.format(c_p_cls)
-        #         with open(detfile, 'r') as f:
-        #             lines_c = f.readlines()
-        #         lines += lines_c
+        lines = []
+        for c_p_cls in CLASSES:
+            if (c_p_cls.startswith(classname)):
+                detfile = detpath.format(c_p_cls)
+                with open(detfile, 'r') as f:
+                    lines_c = f.readlines()
+                lines += filter_lines(lines_c)
 
         if any(lines) == 1:
             splitlines = [x.strip().split(' ') for x in lines]
@@ -516,7 +516,7 @@ if __name__ == '__main__':
     #plot_prob_cl_box(ret)
     #get_component_map(imagesetfile, anno_file, detpath, catalog_csv)
     compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
-                            subset_file=subsetf, ovthresh=0.5)
+                            subset_file=subsetf, ovthresh=0.3)
 
     # for k, v in ret.items():
     #     print(k, len(v[0]), len(v[1]))
