@@ -1,9 +1,9 @@
 # ClaRAN
-Radio Galaxy Zoo: ClaRAN - A Deep Learning Classifier for Radio Morphologies
+[Radio Galaxy Zoo](https://radio.galaxyzoo.org/): ClaRAN - A Deep Learning Classifier for Radio Morphologies
 
 **ClaRAN** - **Cla**ssifying **R**adio sources **A**utomatically with **N**eural networks - is a proof-of-concept radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). *ClaRAN* is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. *ClaRAN* demonstrates the feasibility of applying deep learning methods for cross-matching complex radio sources of multiple components with infrared maps. The promising results from *ClaRAN* have implications for the further development of efficient cross-wavelength source identification, matching, and morphology classifications for future radio surveys.
 
-Compared to existing Faster R-CNN implementations, *ClaRAN* replaces the original RoI cropping layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support a fully end-to-end training pipeline. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a much longer latency  of course --- e.g. 6 seconds compared to 100s of milliseconds per image).
+*ClaRAN* replaces the original RoI cropping layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support a fully end-to-end training pipeline. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a much longer latency  of course --- e.g. 6 seconds compared to 100s of milliseconds per image).
 
 ## Requirements
 
