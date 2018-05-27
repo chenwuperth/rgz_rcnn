@@ -1,9 +1,9 @@
-# rgz_rcnn
-Region-based Convolutional Neural Networks for Radio Galaxy Zoo.
+# ClaRAN
+Radio Galaxy Zoo: ClaRAN - A Deep Learning Classifier for Radio Morphologies
 
-This repository contains the source code of our proof-of-concept automated radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). This is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. Hence, demonstrating the strengths for the application of deep learning algorithms in the automated analysis of radio sources that will eventuate from the next-generation large sky surveys at radio wavelengths.
+**ClaRAN** - **Cla**ssifying **R**adio sources **A**utomatically with **N**eural networks - is a proof-of-concept radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). *ClaRAN* is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. *ClaRAN* demonstrates the feasibility of applying deep learning methods for cross-matching complex radio sources of multiple components with infrared maps. The promising results from *ClaRAN* have implications for the further development of efficient cross-wavelength source identification, matching, and morphology classifications for future radio surveys.
 
-Compared to existing Faster R-CNN implementations, we replaced the original RoI pooling layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support the end-to-end training. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a much longer latency  of course --- e.g. 6 seconds compared to 100s of milliseconds per image).
+Compared to existing Faster R-CNN implementations, *ClaRAN* replaces the original RoI cropping layer with the [Spatial Transformer Network](https://arxiv.org/abs/1506.02025) (STN) pooling to support a fully end-to-end training pipeline. An *unexpected* benefit of this is that the code also runs on laptops that may not have GPUs (with a much longer latency  of course --- e.g. 6 seconds compared to 100s of milliseconds per image).
 
 ## Requirements
 
@@ -65,9 +65,9 @@ If you benefit from this code, please cite our paper:
 
 ```
 @article{wu2018rgzrcnn,
-  title={Radio Galaxy Zoo: Region-based Convolutional Neural Networks for Source Detection and Morphology Classification},
-  author={Wu, Chen and Wong, O. Ivy, and et al.},
-  journal={in preparation},
+  title={Radio Galaxy Zoo: ClaRAN — a deep learning classifier for radio morphologies},
+  author={Wu C, Wong O. i., Rudnick L., Shabala S. S., Alger M. J., Banfield, J. K., Ong C. S., White S. V., Garon A. F., Norris R. P., Andernach H. A., Tate, J., Lukic V., Tang H., Schawinski K.},
+  journal={In submission (MNRAS)},
   year={2018}
 }
 ```
