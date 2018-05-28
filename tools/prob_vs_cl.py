@@ -118,7 +118,7 @@ def filter_detections(detpath, outpath, threshold=0.8):
 
 def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
                             subset_file, ovthresh=0.5, merge_comp=True,
-                            filter_subset=True):
+                            filter_subset=True, record_size=False):
     """
     Get mAP score from a subset of the FirstIDs
 
@@ -145,9 +145,12 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
     #print(subsets)
     cls_names = COMP_CLASSES[1:] if merge_comp else CLASSES[1:]
     #for classname in CLASSES[1:]:
+    mAP = 0.0
     for classname in cls_names:
         class_recs = dict() # class-specific ground truth
         npos = 0
+        if (record_size):
+            rsz = []
         for imagename in imagenames:
             if (filter_subset):
                 if (not imagename.split('_')[0] in subsets):
@@ -211,9 +214,9 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
             fp = np.zeros(nd)
             for d in range(nd):
                 R = class_recs[image_ids[d]]
-                bb = BB[d, :].astype(float)
+                bb = BB[d, :].astype(float) # detected box
                 ovmax = -np.inf
-                BBGT = R['bbox'].astype(float)
+                BBGT = R['bbox'].astype(float) # gt box
 
                 if BBGT.size > 0:
                     # compute overlaps
@@ -240,6 +243,10 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
                         if not R['det'][jmax]:
                             tp[d] = 1.
                             R['det'][jmax] = 1
+                            if (record_size):
+                                gt_sz = int((ixmax - ixmin)[jmax])
+                                det_sz = int(bb[2] - bb[0])
+                                rsz.append((gt_sz, det_sz))
                         else:
                             fp[d] = 1.
                 else:
@@ -254,10 +261,15 @@ def compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
             prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
             ap = voc_ap(rec, prec)
             print(classname, ap)
-    else:
-         rec = -1
-         prec = -1
-         ap = -1
+            mAP += ap
+            if (record_size):
+                with open('/tmp/%s.pkl' % classname, 'w') as fout:
+                    cPickle.dump(rsz, fout)
+    print('mAP = %.4f' % (mAP / len(cls_names)))
+    # else:
+    #      rec = -1
+    #      prec = -1
+    #      ap = -1
 
 def get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv, ovthresh=0.5):
     """
@@ -392,7 +404,7 @@ def plot_prob_cl_box(prob_cl_mapping_list, plot_outliers=False):
 
 if __name__ == '__main__':
     rgz_cnn_data = '/Users/Chen/proj/rgz_rcnn/data/RGZdevkit2017' #TODO passed in as an argument
-    model_v = 3
+    model_v = 4
     imagesetfile = osp.join(rgz_cnn_data,
                         'RGZ2017/ImageSets/Main/testD%d.txt' % model_v)
     anno_file = osp.join(rgz_cnn_data,
@@ -405,14 +417,15 @@ if __name__ == '__main__':
     detpath = osp.join(rgz_cnn_data,
                          'results/RGZ2017/Main/comp4_det_testD%d_{0}.txt' % model_v)
     subsetf = osp.join(rgz_cnn_data,
-                         'RGZ2017/ImageSets/Main/multisource.txt')
+                        'RGZ2017/ImageSets/Main/multisource.txt')
+    #subsetf = '/Users/Chen/proj/rgz-ml/data/visualise/first_id_random.txt'
 
     #filter_detections(detpath, outpath)
     #ret = get_prob_cl_mapping_list(imagesetfile, anno_file, detpath, catalog_csv)
     #plot_prob_cl_box(ret)
-    compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
-                            subsetf, ovthresh=0.5, merge_comp=True,
-                            filter_subset=False)
+    # compute_map_from_subset(imagesetfile, anno_file, detpath, catalog_csv,
+    #                         subsetf, ovthresh=0.5, merge_comp=True,
+    #                         filter_subset=False, record_size=False)
 
     # for k, v in ret.items():
     #     print(k, len(v[0]), len(v[1]))
