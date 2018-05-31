@@ -66,7 +66,7 @@ If you benefit from this code, please cite our paper:
 ```
 @article{wu2018rgzrcnn,
   title={Radio Galaxy Zoo: ClaRAN — a deep learning classifier for radio morphologies},
-  author={Wu C, Wong O. i., Rudnick L., Shabala S. S., Alger M. J., Banfield, J. K., Ong C. S., White S. V., Garon A. F., Norris R. P., Andernach H. A., Tate, J., Lukic V., Tang H., Schawinski K.},
+  author={Wu C, Wong O. i., Rudnick L., Shabala S. S., Alger M. J., Banfield, J. K., Ong C. S., White S. V., Garon A. F., Norris R. P., Andernach H. A., Tate, J., Lukic V., Tang H., Schawinski K., Diakogiannis F. I.},
   journal={In submission (MNRAS)},
   year={2018}
 }
