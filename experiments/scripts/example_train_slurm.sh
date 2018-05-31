@@ -10,6 +10,10 @@
 module load tensorflow/1.4.0-py27-gpu
 module load opencv openmpi
 
+# if cuda driver is not in the system path, customise and add the following paths
+# export PATH=/usr/local/cuda-8.0/bin${PATH:+:${PATH}}
+# export LD_LIBRARY_PATH=/usr/local/cuda-8.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
 export PYTHONPATH=$PYTHONPATH:/home/wu082/software/lib/python2.7/site-packages
 RGZ_RCNN=/flush1/wu082/proj/rgz_rcnn
 mpirun -np 1 python $RGZ_RCNN/tools/train_net.py \
