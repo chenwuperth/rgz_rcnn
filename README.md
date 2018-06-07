@@ -1,5 +1,5 @@
 # ClaRAN
-[Radio Galaxy Zoo](https://radio.galaxyzoo.org/): ClaRAN - A Deep Learning Classifier for Radio Morphologies
+[Radio Galaxy Zoo: ClaRAN - A Deep Learning Classifier for Radio Morphologies](https://arxiv.org/abs/1805.12008)
 
 **ClaRAN** - **Cla**ssifying **R**adio sources **A**utomatically with **N**eural networks - is a proof-of-concept radio source morphology classifier based upon the Faster Region-based Convolutional Neutral Network ([Faster R-CNN](https://dl.acm.org/citation.cfm?id=3101780)). *ClaRAN* is the first publicly available radio source morphology classifier that is capable of associating discrete and extended components of radio sources in an automated fashion. *ClaRAN* demonstrates the feasibility of applying deep learning methods for cross-matching complex radio sources of multiple components with infrared maps. The promising results from *ClaRAN* have implications for the further development of efficient cross-wavelength source identification, matching, and morphology classifications for future radio surveys.
 
