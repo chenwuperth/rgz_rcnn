@@ -14,6 +14,9 @@ import warnings
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 import numpy as np
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 #import ephem
 
 #getfits_exec = '/Users/Chen/Downloads/wcstools-3.9.5/bin/getfits'
@@ -115,6 +118,9 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
     # xx, yy = np.meshgrid(nx, ny)
     # print(xx[1])
     # print(yy[1])
+    fig, ax = plt.subplots(1)
+    ax.imshow(np.reshape(d, [d.shape[-2], d.shape[-1]]))
+
     for i, x in enumerate(nx):
         for j, y in enumerate(ny):
             x1 = max(x - halo_w, 0)
@@ -122,12 +128,20 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
             wd = new_w
             hd = new_h
             if (i == len(nx) - 1):
-                wd += extra_w
+                x2 = w - 1
+            else:
+                x2 = min(x1 + wd + halo_w, w - 1)
             if (j == len(ny) - 1):
-                hd += extra_h
-            x2 = min(x1 + wd, w - 1)
-            y2 = min(y1 + hd, h - 1)
+                y2 = h - 1
+            else:
+                y2 = min(y1 + hd + halo_h, h - 1)
             print(x1, y1, ' ', x2, y2)
+            rect = patches.Rectangle((x1, y1), (x2 - x1), (y2 - y1),
+                                    linewidth=1, edgecolor='r',
+                                    facecolor='none')
+            # Add the patch to the Axes
+            ax.add_patch(rect)
+    plt.show()
 
 if __name__ == '__main__':
     root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
@@ -135,4 +149,4 @@ if __name__ == '__main__':
     # clip_file(fname)
 
     fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
-    split_file(fname, 6, 6)
+    split_file(fname, 12, 12)
