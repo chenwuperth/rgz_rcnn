@@ -66,11 +66,14 @@ def clip_nan(d, file, fname, work_dir='/tmp'):
     height = abs((y2 - y1) * fhead['CDELT2'])
     fid = osp.basename(fname).replace('.fits', '_clipped.fits')
     #cmd = cutout_cmd % (fid, work_dir, fname, ra0, dec0, width, height)
-    cmd = subimg_cmd % (fname, osp.join(work_dir, fid), ra, dec, width, height)
+    clipped_fname = osp.join(work_dir, fid)
+    cmd = subimg_cmd % (fname, clipped_fname, ra, dec, width, height)
     print(cmd)
+    return clipped_fname
 
-def split(fname, width_ratio, height_ratio):
+def clip_file(fname):
     """
+    remove all the NaN cells surrounding the image
     """
     file = pyfits.open(fname)
     d = file[0].data
@@ -83,7 +86,53 @@ def split(fname, width_ratio, height_ratio):
     clip_nan(d, file, fname)
     file.close()
 
+def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
+    """
+    width_ratio = current_width / new_width, integer
+    height_ratio = current_height / new_height, integer
+    halo in pixel
+    """
+    file = pyfits.open(fname)
+    d = file[0].data
+    fhead = file[0].header
+    h = d.shape[-2] #y
+    w = d.shape[-1] #x
+    print(h, w)
+    new_h = int(h / height_ratio)
+    extra_h = h % height_ratio
+    halo_h = new_h / halo_ratio
+    #print(extra_h)
+    ny = np.arange(height_ratio) * new_h# + (new_h / 2)
+    #ny[-1] += extra_h / 2
+    print(ny)
+    new_w = int(w / width_ratio)
+    extra_w = w % width_ratio
+    halo_w = new_w / halo_ratio
+    #print(extra_w)
+    nx = np.arange(width_ratio) * new_w# + (new_w / 2)
+    #nx[-1] += extra_w / 2
+    print(nx)
+    # xx, yy = np.meshgrid(nx, ny)
+    # print(xx[1])
+    # print(yy[1])
+    for i, x in enumerate(nx):
+        for j, y in enumerate(ny):
+            x1 = max(x - halo_w, 0)
+            y1 = max(y - halo_w, 0)
+            wd = new_w
+            hd = new_h
+            if (i == len(nx) - 1):
+                wd += extra_w
+            if (j == len(ny) - 1):
+                hd += extra_h
+            x2 = min(x1 + wd, w - 1)
+            y2 = min(y1 + hd, h - 1)
+            print(x1, y1, ' ', x2, y2)
+
 if __name__ == '__main__':
-    fname = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23/gama_linmos_corrected.fits'
-    #fname = '/tmp/gama_linmos_corrected_clipped.fits'
-    split(fname, None, None)
+    root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
+    # fname = osp.join(root_dir, 'gama_linmos_corrected.fits')
+    # clip_file(fname)
+
+    fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
+    split_file(fname, 6, 6)
