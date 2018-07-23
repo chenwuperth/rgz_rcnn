@@ -14,7 +14,8 @@ import warnings
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 import numpy as np
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 #import ephem
@@ -22,8 +23,10 @@ import matplotlib.patches as patches
 #getfits_exec = '/Users/Chen/Downloads/wcstools-3.9.5/bin/getfits'
 #cutout_cmd = '{0} -sv -o %s -d %s %s %s %s J2000 %d %d'.format(getfits_exec)
 
-subimg_exec = '/Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d' #degree
+#subimg_exec = '/Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d' #degree
+subimg_exec = '/Users/chen/Downloads/Montage/bin/mSubimage'
 subimg_cmd = '{0} %s %s %.4f %.4f %.4f %.4f'.format(subimg_exec)
+splitimg_cmd = '{0} -p %s %s %d %d %d %d'.format(subimg_exec)
 """
 e.g.
 /Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d
@@ -89,7 +92,8 @@ def clip_file(fname):
     clip_nan(d, file, fname)
     file.close()
 
-def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
+def split_file(fname, width_ratio, height_ratio, halo_ratio=50,
+               show_split_scheme=False, work_dir='/tmp'):
     """
     width_ratio = current_width / new_width, integer
     height_ratio = current_height / new_height, integer
@@ -118,8 +122,9 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
     # xx, yy = np.meshgrid(nx, ny)
     # print(xx[1])
     # print(yy[1])
-    fig, ax = plt.subplots(1)
-    ax.imshow(np.reshape(d, [d.shape[-2], d.shape[-1]]))
+    if (show_split_scheme):
+        fig, ax = plt.subplots(1)
+        ax.imshow(np.reshape(d, [d.shape[-2], d.shape[-1]]))
 
     for i, x in enumerate(nx):
         for j, y in enumerate(ny):
@@ -135,16 +140,24 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50):
                 y2 = h - 1
             else:
                 y2 = min(y1 + hd + halo_h, h - 1)
-            print(x1, y1, ' ', x2, y2)
-            rect = patches.Rectangle((x1, y1), (x2 - x1), (y2 - y1),
-                                    linewidth=1, edgecolor='r',
-                                    facecolor='none')
-            # Add the patch to the Axes
-            ax.add_patch(rect)
-    plt.show()
+            fid = osp.basename(fname).replace('.fits', '%d-%d.fits' % (i, j))
+            #cmd = cutout_cmd % (fid, work_dir, fname, ra0, dec0, width, height)
+            out_fname = osp.join(work_dir, fid)
+            print(splitimg_cmd % (fname, out_fname, x1, y1, (x2 - x1), (y2 - y1)))
+            #print(x1, y1, ' ', x2, y2)
+            if (show_split_scheme):
+                rect = patches.Rectangle((x1, y1), (x2 - x1), (y2 - y1),
+                                        linewidth=1, edgecolor='r',
+                                        facecolor='none')
+                # Add the patch to the Axes
+                ax.add_patch(rect)
+    if (show_split_scheme):
+        plt.show()
+        plt.savefig('test.png')
 
 if __name__ == '__main__':
-    root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
+    #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
+    root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23'
     # fname = osp.join(root_dir, 'gama_linmos_corrected.fits')
     # clip_file(fname)
 
