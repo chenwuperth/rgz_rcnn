@@ -160,11 +160,52 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50,
         plt.show()
         plt.savefig('test.pdf')
 
+def vo_get(split_fits_dir):
+    """
+    1. use VO query to get the image list close to the centre of a given EMU fits image
+    wget -O ir_vo_list.csv 
+    "https://irsa.ipac.caltech.edu/SIA?COLLECTION=wise_allwise&POS=circle+348.425+31.151111+0.0027777
+    &RESPONSEFORMAT=CSV"
+    2. go through the ir_vo_list.csv, and download the W1 band image (should be just one)
+    """
+    cmd = 'wget -O %s.csv '\
+    '"https://irsa.ipac.caltech.edu/SIA?COLLECTION=wise_allwise&POS=circle+%.4f+%.4f+0.0027777'\
+    '&RESPONSEFORMAT=CSV"'
+    for fn in os.listdir(split_fits_dir):
+        print(split_fits_dir)
+        fname = osp.join(split_fits_dir, fn)
+        if (not fname.endswith('.fits')):
+            continue
+        print(fname)
+        file = pyfits.open(fname)
+        d = file[0].data
+        h = d.shape[-2] #y
+        w = d.shape[-1] #x
+
+        cx = int(w / 2)
+        cy = int(h / 2)
+        #print(cx, cy)
+        fhead = file[0].header
+        warnings.simplefilter("ignore")
+        w = pywcs.WCS(fhead, naxis=2)
+        warnings.simplefilter("default")
+        ra, dec = w.wcs_pix2world([[cx, cy]], 0)[0]
+        print(cmd % (osp.splitext(fname)[0], ra, dec))
+
+
+def cutout_regrid():
+    """ 
+    3. cutout the image to have a slightly larger angular size than the EMU image
+    4. reproject the cutout IR image onto the same grid as the EMU radio image
+
+    """
+
 if __name__ == '__main__':
     #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
     root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23'
     # fname = osp.join(root_dir, 'gama_linmos_corrected.fits')
     # clip_file(fname)
 
-    fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
-    split_file(fname, 12, 12, show_split_scheme=True, equal_aspect=True)
+    #fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
+    #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
+    vo_get(osp.join(root_dir, 'split_fits/1deg'))
