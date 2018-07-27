@@ -11,6 +11,9 @@ import os
 import os.path as osp
 import math
 import warnings
+import csv
+from collections import defaultdict
+
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 import numpy as np
@@ -25,6 +28,7 @@ import matplotlib.patches as patches
 
 #subimg_exec = '/Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d' #degree
 subimg_exec = '/Users/chen/Downloads/Montage/bin/mSubimage'
+regrid_exec = '/Users/chen/Downloads/Montage/bin/mProject'
 subimg_cmd = '{0} %s %s %.4f %.4f %.4f %.4f'.format(subimg_exec)
 splitimg_cmd = '{0} -p %s %s %d %d %d %d'.format(subimg_exec)
 """
@@ -168,15 +172,16 @@ def vo_get(split_fits_dir):
     &RESPONSEFORMAT=CSV"
     2. go through the ir_vo_list.csv, and download the W1 band image (should be just one)
     """
+    
     cmd = 'wget -O %s.csv '\
-    '"https://irsa.ipac.caltech.edu/SIA?COLLECTION=wise_allwise&POS=circle+%.4f+%.4f+0.0027777'\
+    '"https://irsa.ipac.caltech.edu/SIA?COLLECTION=wise_allwise&POS=circle+%.4f+%.4f+%.6f'\
     '&RESPONSEFORMAT=CSV"'
     for fn in os.listdir(split_fits_dir):
-        print(split_fits_dir)
+        #print(split_fits_dir)
         fname = osp.join(split_fits_dir, fn)
-        if (not fname.endswith('.fits')):
+        if (not fname.endswith('.fits') or fname.find('wise') > -1):
             continue
-        print(fname)
+        #print(fname)
         file = pyfits.open(fname)
         d = file[0].data
         h = d.shape[-2] #y
@@ -190,15 +195,50 @@ def vo_get(split_fits_dir):
         w = pywcs.WCS(fhead, naxis=2)
         warnings.simplefilter("default")
         ra, dec = w.wcs_pix2world([[cx, cy]], 0)[0]
-        print(cmd % (osp.splitext(fname)[0], ra, dec))
+        radius = max(fhead['CDELT1'] * cx, fhead['CDELT2'] * cy)
+        print(cmd % (osp.splitext(fname)[0], ra, dec, radius))
 
+def download_wise(download_dir):
+    """
+    """
+    mapping = defaultdict(list)
+    for fn in os.listdir(download_dir):
+        fname = osp.join(download_dir, fn)
+        if (not fname.endswith('.csv')):
+            continue
+        with open(fname, 'r') as votable:
+            reader = csv.DictReader(votable)
+            for row in reader:
+                if ('W1' == row['energy_bandpassname'] and 'image/fits' == row['access_format']):
+                    url = row['access_url']
+                    mapping[osp.basename(fname).replace('.csv', '.fits')].append(url.split('/')[-1])
+                    print('wget %s' % (url))
+    
+    with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
+        for k, v in mapping.items():
+            fout.write('%s,%s' % (k, ','.join(v)))
+            fout.write(os.linesep)
+                
+def cutout(split_fits_dir):
+    pass
 
-def cutout_regrid():
+def regrid(split_fits_dir):
     """ 
     3. cutout the image to have a slightly larger angular size than the EMU image
     4. reproject the cutout IR image onto the same grid as the EMU radio image
-
     """
+    for fn in os.listdir(split_fits_dir):
+        fname = osp.join(split_fits_dir, fn)
+        if (fname.endswith('.fits') and fname.find('wise') == -1):
+            file = pyfits.open(fname)
+            head = file[0].header.copy()
+            hdr_tpl = fname.replace('.fits', '_tmp.hdr')
+            #print(dir(head))
+            head.totextfile(hdr_tpl, clobber=True)
+            infile = fname.replace('.fits', '_wise_whole.fits') # wise_whole
+            outfile = fname.replace('.fits', '_wise_regrid.fits') # wise_regrid
+            cmd = '%s %s %s %s' % (regrid_exec, infile, outfile, hdr_tpl)
+            print(cmd)
 
 if __name__ == '__main__':
     #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
@@ -208,4 +248,6 @@ if __name__ == '__main__':
 
     #fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
-    vo_get(osp.join(root_dir, 'split_fits/1deg'))
+    #vo_get(osp.join(root_dir, 'split_fits/1deg'))
+    download_wise(osp.join(root_dir, 'split_fits/1deg'))
+    #regrid(osp.join(root_dir, 'split_fits/1deg'))
