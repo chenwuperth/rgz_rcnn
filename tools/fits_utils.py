@@ -27,8 +27,11 @@ import matplotlib.patches as patches
 #cutout_cmd = '{0} -sv -o %s -d %s %s %s %s J2000 %d %d'.format(getfits_exec)
 
 #subimg_exec = '/Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d' #degree
-subimg_exec = '/Users/chen/Downloads/Montage/bin/mSubimage'
-regrid_exec = '/Users/chen/Downloads/Montage/bin/mProject'
+montage_path = '/Users/chen/Downloads/Montage/bin'
+subimg_exec = '%s/mSubimage' % montage_path
+regrid_exec = '%s/mProject' % montage_path
+imgtbl_exec = '%s/mImgtbl' % montage_path
+coadd_exec = '%s/mAdd' % montage_path
 subimg_cmd = '{0} %s %s %.4f %.4f %.4f %.4f'.format(subimg_exec)
 splitimg_cmd = '{0} -p %s %s %d %d %d %d'.format(subimg_exec)
 """
@@ -219,8 +222,44 @@ def download_wise(download_dir):
             fout.write('%s,%s' % (k, ','.join(v)))
             fout.write(os.linesep)
                 
-def cutout(split_fits_dir):
-    pass
+def prepare_coadd(split_fits_dir):
+    """
+    load the mapping_neighbour into a dict
+    create a folder f for each EMU fits split
+    create symbolic links inside f pointing back to all related wise IR fits files
+    create the imgages.tbl for each EMU fits split
+    do the co-adding
+    """
+    wise_dict = dict()
+    with open(osp.join(split_fits_dir, 'mapping_neighbour.txt'), 'r') as fin:
+        mylist = fin.read().splitlines()
+        for line in mylist:
+            ll = line.split(',')
+            wise_dict[ll[0]] = ll[1:]
+
+    for fn in os.listdir(split_fits_dir):
+        fname = osp.join(split_fits_dir, fn)
+        if (fname.endswith('.fits') and fname.find('wise') == -1):
+            dirn = fname.replace('.fits', '_dir')
+            if (not osp.exists(dirn)):
+                os.mkdir(dirn)
+            ir_list = wise_dict[fn]
+            for ir_fn in ir_list:
+                dst = osp.join(split_fits_dir, dirn, ir_fn)
+                if (osp.exists(dst)):
+                    #print("skip creating %s" % dst)
+                    continue
+                src = osp.join(split_fits_dir, 'wise_ir', ir_fn)
+                os.symlink(src, dst)
+            tbl_fn = fname.replace('.fits', '.tbl')
+            if (not osp.exists(tbl_fn)):
+                cmd = '%s %s %s' % (imgtbl_exec, dirn, tbl_fn)
+                print(cmd)
+            outfile = fname.replace('.fits', '_wise_coadd.fits')
+            if (not osp.exists(outfile)):
+                hdr_tpl = fname.replace('.fits', '_tmp.hdr')
+                cmd = '%s %s %s %s' % (coadd_exec, tbl_fn, hdr_tpl, outfile)
+                print(cmd)
 
 def regrid(split_fits_dir):
     """ 
@@ -249,5 +288,6 @@ if __name__ == '__main__':
     #fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
     #vo_get(osp.join(root_dir, 'split_fits/1deg'))
-    download_wise(osp.join(root_dir, 'split_fits/1deg'))
+    #download_wise(osp.join(root_dir, 'split_fits/1deg'))
+    prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
     #regrid(osp.join(root_dir, 'split_fits/1deg'))
