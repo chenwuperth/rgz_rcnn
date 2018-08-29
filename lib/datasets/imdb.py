@@ -24,7 +24,7 @@ class imdb(object):
         self._image_index = []
         self._obj_proposer = 'selective_search'
         self._roidb = None
-        print self.default_roidb
+        print (self.default_roidb)
         self._roidb_handler = self.default_roidb
         # Use this dict for storing dataset specific config options
         self.config = {}
@@ -99,7 +99,7 @@ class imdb(object):
 
     def _get_widths(self):
       return [PIL.Image.open(self.image_path_at(i)).size[0]
-              for i in xrange(self.num_images)]
+              for i in range(self.num_images)]
 
     def append_flipped_images(self):
         num_images = self.num_images

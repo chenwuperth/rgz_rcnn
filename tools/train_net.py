@@ -11,6 +11,7 @@
 
 import _init_paths
 from fast_rcnn.train import get_training_roidb, train_net
+from fast_rcnn.test import test_net
 from fast_rcnn.config import cfg,cfg_from_file, cfg_from_list, get_output_dir
 from datasets.factory import get_imdb
 from networks.factory import get_network
@@ -43,7 +44,8 @@ def parse_args():
                         default=None, type=str)
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to train on',
-                        default='kitti_train', type=str)
+#                        default='kitti_train', type=str)
+                        default='voc_2007_test',type=str)
     parser.add_argument('--rand', dest='randomize',
                         help='randomize (do not use a fixed seed)',
                         action='store_true')
@@ -85,17 +87,17 @@ if __name__ == '__main__':
         # fix the random seeds (numpy and caffe) for reproducibility
         np.random.seed(cfg.RNG_SEED)
     imdb = get_imdb(args.imdb_name)
-    print 'Loaded dataset `{:s}` for training'.format(imdb.name)
+    print ('Loaded dataset `{:s}` for training'.format(imdb.name))
     roidb = get_training_roidb(imdb)
 
     output_dir = get_output_dir(imdb, None)
-    print 'Output will be saved to `{:s}`'.format(output_dir)
+    print ('Output will be saved to `{:s}`'.format(output_dir))
 
     device_name = '/{}:{:d}'.format(args.device,args.device_id)
-    print device_name
+    print (device_name)
 
     network = get_network(args.network_name)
-    print 'Use network `{:s}` in training'.format(args.network_name)
+    print ('Use network `{:s}` in training'.format(args.network_name))
 
     if (args.learning_rate > 0):
         cfg.TRAIN.LEARNING_RATE = args.learning_rate

@@ -21,6 +21,7 @@ for year in ['2017']:
                   'trainD4', 'testD4',
                   'trainD5', 'testD5']:
         name = 'rgz_{}_{}'.format(year, split)
+        print (name)
         print('Loading dataset %s' % name)
         __sets[name] = (lambda split=split, year=year:
                 datasets.rgz(split, year))
@@ -28,7 +29,7 @@ for year in ['2017']:
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
-    if not __sets.has_key(name):
+    if not name in __sets:
         raise KeyError('Unknown dataset: {}'.format(name))
     return __sets[name]()
 

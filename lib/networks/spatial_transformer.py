@@ -177,7 +177,7 @@ def transformer(U, theta, out_size, name='SpatialTransformer', **kwargs):
             output = tf.reshape(
                 input_transformed, tf.stack([num_batch, out_height, out_width, num_channels]))
             #print("_transform output", output.get_shape().as_list())
-	    return output
+        return output
 
     with tf.variable_scope(name):
         output = _transform(theta, U, out_size)
@@ -201,7 +201,7 @@ def batch_transformer(U, thetas, out_size, name='BatchSpatialTransformer'):
         Tensor of size [num_batch*num_transforms,out_height,out_width,num_channels]
     """
     with tf.variable_scope(name):
-        num_batch, num_transforms = map(int, thetas.get_shape().as_list()[:2])
-        indices = [[i]*num_transforms for i in xrange(num_batch)]
+        num_batch, num_transforms = list(map(int, thetas.get_shape().as_list()[:2]))
+        indices = [[i]*num_transforms for i in range(num_batch)]
         input_repeated = tf.gather(U, tf.reshape(indices, [-1]))
         return transformer(input_repeated, thetas, out_size)

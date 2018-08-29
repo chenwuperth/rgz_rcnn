@@ -101,3 +101,19 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+
+
+data/RGZdevkit2017/RGZ2017/Annotations/
+data/RGZdevkit2017/RGZ2017/ImageSets/Main/sakura.txt
+data/RGZdevkit2017/RGZ2017/PNGImages/
+data/RGZdevkit2017/annotations_cache/
+data/RGZdevkit2017/results/
+data/pretrained_model/
+data/rgzdemo/
+lib/nms/cpu_nms.c
+lib/utils/bbox.c
+lib/utils/nms.c
+output/
+

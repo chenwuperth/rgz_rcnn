@@ -10,7 +10,7 @@ import yaml
 from fast_rcnn.config import cfg
 import numpy as np
 import numpy.random as npr
-from generate_anchors import generate_anchors
+from rpn_msr.generate_anchors import generate_anchors
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.project_bbox import project_bbox
@@ -31,13 +31,13 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, #theta,
     _num_anchors = _anchors.shape[0]
 
     if DEBUG:
-        print 'anchors:'
-        print _anchors
-        print 'anchor shapes:'
-        print np.hstack((
+        print ('anchors:')
+        print (_anchors)
+        print ('anchor shapes:')
+        print (np.hstack((
             _anchors[:, 2::4] - _anchors[:, 0::4],
             _anchors[:, 3::4] - _anchors[:, 1::4],
-        ))
+        )))
         _counts = cfg.EPS
         _sums = np.zeros((1, 4))
         _squared_sums = np.zeros((1, 4))
@@ -67,13 +67,13 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, #theta,
     height, width = rpn_cls_score.shape[1:3]
 
     if DEBUG:
-        print 'AnchorTargetLayer: height', height, 'width', width
-        print ''
-        print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
-        print 'scale: {}'.format(im_info[2])
-        print 'height, width: ({}, {})'.format(height, width)
-        print 'rpn: gt_boxes.shape', gt_boxes.shape
-        print 'rpn: gt_boxes', gt_boxes
+        print ('AnchorTargetLayer: height', height, 'width', width)
+        print ('')
+        print ('im_size: ({}, {})'.format(im_info[0], im_info[1]))
+        print ('scale: {}'.format(im_info[2]))
+        print ('height, width: ({}, {})'.format(height, width))
+        print ('rpn: gt_boxes.shape', gt_boxes.shape)
+        print ('rpn: gt_boxes', gt_boxes)
     	#print("theta = {0}".format(theta.flatten()))
 
     #gt_boxes = project_bbox(gt_boxes, theta, (im_info[0], im_info[1]))
@@ -107,13 +107,13 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, #theta,
     )[0]
 
     if DEBUG:
-        print 'total_anchors', total_anchors
-        print 'inds_inside', len(inds_inside)
+        print ('total_anchors', total_anchors)
+        print ('inds_inside', len(inds_inside))
 
     # keep only inside anchors
     anchors = all_anchors[inds_inside, :]
     if DEBUG:
-        print 'anchors.shape', anchors.shape
+        print ('anchors.shape', anchors.shape)
 
     # label: 1 is positive, 0 is negative, -1 is dont care
     labels = np.empty((len(inds_inside), ), dtype=np.float32)
@@ -212,10 +212,10 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, #theta,
         _counts += np.sum(labels == 1)
         means = _sums / _counts
         stds = np.sqrt(_squared_sums / _counts - means ** 2)
-        print 'means:'
-        print means
-        print 'stdevs:'
-        print stds
+        print ('means:')
+        print (means)
+        print ('stdevs:')
+        print (stds)
 
     # map up to original set of anchors
     labels = _unmap(labels, total_anchors, inds_inside, fill=-1)
@@ -224,14 +224,14 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, data, #theta,
     bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
 
     if DEBUG:
-        print 'rpn: max max_overlap', np.max(max_overlaps)
-        print 'rpn: num_positive', np.sum(labels == 1)
-        print 'rpn: num_negative', np.sum(labels == 0)
+        print ('rpn: max max_overlap', np.max(max_overlaps))
+        print ('rpn: num_positive', np.sum(labels == 1))
+        print ('rpn: num_negative', np.sum(labels == 0))
         _fg_sum += np.sum(labels == 1)
         _bg_sum += np.sum(labels == 0)
         _count += 1
-        print 'rpn: num_positive avg', _fg_sum / _count
-        print 'rpn: num_negative avg', _bg_sum / _count
+        print ('rpn: num_positive avg', _fg_sum / _count)
+        print ('rpn: num_negative avg', _bg_sum / _count)
 
     # labels
     #pdb.set_trace()
@@ -310,5 +310,4 @@ def _compute_targets(ex_rois, gt_rois):
     assert ex_rois.shape[0] == gt_rois.shape[0]
     assert ex_rois.shape[1] == 4
     assert gt_rois.shape[1] == 5
-
     return bbox_transform(ex_rois, gt_rois[:, :4]).astype(np.float32, copy=False)

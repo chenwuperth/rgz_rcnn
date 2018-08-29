@@ -245,7 +245,7 @@ def conrec(d, ilb, iub, jlb, jub, x, y, nc, z):
                        min(d[i + 1][j], d[i + 1][j + 1]))
             dmax = max(max(d[i][j], d[i][j + 1]),
                        max(d[i + 1][j], d[i + 1][j + 1]))
-
+            
             if dmax >= z[0] and dmin <= z[nc - 1]:
                 for k in range(0, nc):
                     if z[k] >= dmin and z[k] <= dmax:
@@ -367,8 +367,8 @@ def contour(f, rms, LEVEL_INTERVAL):
         return group
 
     def bounding_box(c):
-        xs = map(lambda p: p.x, c['arr'])
-        ys = map(lambda p: p.y, c['arr'])
+        xs = list(map(lambda p: p.x, c['arr']))
+        ys = list(map(lambda p: p.y, c['arr']))
         max_x = max(xs)
         min_x = min(xs)
         max_y = max(ys)
@@ -380,29 +380,29 @@ def contour(f, rms, LEVEL_INTERVAL):
     jdx = range(1, width + 1)
     LEVELS = make_levels(NLEVELS, LEVEL_INTERVAL)
     cs = contour_list(conrec(data, 0, height - 1, 0, width - 1, idx,
-                             jdx, len(LEVELS), map(lambda l: l * rms / LEVELS[0], LEVELS)))
+                             jdx, len(LEVELS), list(map(lambda l: l * rms / LEVELS[0], LEVELS))))
 
     k0contours = map(bounding_box, filter(lambda c: c['k'] == 0, cs))
     subcontours = filter(lambda c: c['k'] != 0, cs)
 
-    return {'height': height, 'width': width, 'contours': map(group_contours, filter(filter_small, k0contours))}
+    return {'height': height, 'width': width, 'contours': list(map(group_contours, filter(filter_small, k0contours)))}
 
 
 def points_to_dict(g):
     for i, c in enumerate(g):
         if not isinstance(c['arr'][0], dict):
-            c['arr'] = map(lambda p: p.to_dict(), c['arr'])
+            c['arr'] = list(map(lambda p: p.to_dict(), c['arr']))
         g[i] = c
     return g
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print "Usage: python make_contours.py [file] [RMS] [LEVEL_INTERVAL]"
+        print ("Usage: python make_contours.py [file] [RMS] [LEVEL_INTERVAL]")
         sys.exit()
     f = sys.argv[1]
     rms = float(sys.argv[2])
     LEVEL_INTERVAL = float(sys.argv[3])
     cs = contour(f, rms, LEVEL_INTERVAL)
-    cs['contours'] = map(points_to_dict, cs['contours'])
-    print json.dumps(cs)
+    cs['contours'] = list(map(points_to_dict, cs['contours']))
+    print (json.dumps(cs))

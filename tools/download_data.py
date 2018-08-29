@@ -24,7 +24,7 @@ output/faster_rcnn_end2end
 
 import os
 import os.path as osp
-import commands
+import subprocess
 import time
 
 rgz_data_url = 'http://ict.icrar.org/store/staff/cwu/rgz_data'
@@ -45,7 +45,7 @@ def get_full_url(fkey):
 
 def check_req():
     cmd = 'wget --help'
-    status, msg = commands.getstatusoutput(cmd)
+    status, msg = subprocess.getstatusoutput(cmd)
     if (status != 0):
         raise Exception('wget is not installed properly')
 
@@ -60,7 +60,7 @@ def download_file(url, tgt_dir):
     cmd = 'wget -O %s %s' % (full_fn, url)
     print("Downloading %s to %s" % (fn, tgt_dir))
     stt = time.time()
-    status, msg = commands.getstatusoutput(cmd)
+    status, msg = subprocess.getstatusoutput(cmd)
     if (status != 0):
         raise Exception("Downloading from %s failed: %s" % (url, msg))
     print("Downloading took %.3f seconds" % (time.time() - stt))
@@ -74,7 +74,7 @@ def extract_file(tar_file, tgt_dir):
     cmd = 'tar -xf %s -C %s' % (tar_file, tgt_dir)
     print("Extracting from %s to %s" % (tar_file, tgt_dir))
     stt = time.time()
-    status, msg = commands.getstatusoutput(cmd)
+    status, msg = subprocess.getstatusoutput(cmd)
     if (status != 0):
         raise Exception("fail to extract %s: %s" % (tar_file, msg))
     print("Extraction took %.3f seconds" % (time.time() - stt))

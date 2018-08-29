@@ -81,7 +81,7 @@ if __name__ == '__main__':
     imdb.competition_mode(args.comp_mode)
 
     network = get_network(args.network_name)
-    print 'Use network `{:s}` in training'.format(args.network_name)
+    print ('Use network `{:s}` in training'.format(args.network_name))
 
     if args.device == 'gpu':
         cfg.USE_GPU_NMS = True
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     saver = tf.train.Saver()
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     saver.restore(sess, args.model)
-    print ('Loading model weights from {:s}').format(args.model)
+    print (('Loading model weights from {:s}').format(args.model))
 
     test_net(sess, network, imdb, weights_filename,
              thresh=args.thresh, force=args.force)

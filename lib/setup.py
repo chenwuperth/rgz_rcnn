@@ -54,11 +54,11 @@ def locate_cuda():
 
     return cudaconfig
 
-CUDA = locate_cuda()
-if (CUDA):
-    print('Found cuda lib = {0}'.format(CUDA['lib64']))
-else:
-    print('No CUDA is found, NMS will be compiled using CPUs only')
+CUDA = False
+#if (CUDA):
+#    print('Found cuda lib = {0}'.format(CUDA['lib64']))
+#else:
+#    print('No CUDA is found, NMS will be compiled using CPUs only')
 
 # Obtain the numpy include directory.  This logic works across numpy versions.
 try:

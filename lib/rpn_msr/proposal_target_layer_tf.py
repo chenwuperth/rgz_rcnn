@@ -35,8 +35,8 @@ def proposal_target_layer(rpn_rois, gt_boxes, #theta,
     #gt_boxes = project_bbox(gt_boxes, theta)
 
     if DEBUG:
-	_count = 0
-	_fg_num = 0
+        _count = 0
+        _fg_num = 0
         _bg_num = 0
         print('After spatial_transformer proposal_target: gt_boxes', gt_boxes, gt_boxes.dtype)
 
@@ -61,14 +61,14 @@ def proposal_target_layer(rpn_rois, gt_boxes, #theta,
         rois_per_image, _num_classes)
 
     if DEBUG:
-        print 'num fg: {}'.format((labels > 0).sum())
-        print 'num bg: {}'.format((labels == 0).sum())
+        print ('num fg: {}'.format((labels > 0).sum()))
+        print ('num bg: {}'.format((labels == 0).sum()))
         _count += 1
         _fg_num += (labels > 0).sum()
         _bg_num += (labels == 0).sum()
-        print 'num fg avg: {}'.format(_fg_num / _count)
-        print 'num bg avg: {}'.format(_bg_num / _count)
-        print 'ratio: {:.3f}'.format(float(_fg_num) / float(_bg_num))
+        print ('num fg avg: {}'.format(_fg_num / _count))
+        print ('num bg avg: {}'.format(_bg_num / _count))
+        print ('ratio: {:.3f}'.format(float(_fg_num) / float(_bg_num)))
 
     rois = rois.reshape(-1,5)
     labels = labels.reshape(-1,1)

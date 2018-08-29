@@ -6,9 +6,10 @@
 
 import xml.etree.ElementTree as ET
 import os
-import cPickle
+import pickle
 import numpy as np
 import pdb
+import io
 def parse_rec(filename):
     """ Parse a PASCAL VOC xml file """
     tree = ET.parse(filename)
@@ -107,21 +108,21 @@ def voc_eval(detpath,
         for i, imagename in enumerate(imagenames):
             recs[imagename] = parse_rec(annopath.format(imagename))
             if i % 100 == 0:
-                print 'Reading annotation for {:d}/{:d}'.format(
-                    i + 1, len(imagenames))
+                print ('Reading annotation for {:d}/{:d}'.format(
+                    i + 1, len(imagenames)))
         return recs
 
     if not os.path.isfile(cachefile):
         # load annots
         recs = compute_recs()
         # save
-        print 'Saving cached annotations to {:s}'.format(cachefile)
-        with open(cachefile, 'w') as f:
-            cPickle.dump(recs, f)
+        print ('Saving cached annotations to {:s}'.format(cachefile))
+        with open(cachefile, 'wb') as f:
+            pickle.dump(recs, f)
     else:
         # load
-        with open(cachefile, 'r') as f:
-            recs = cPickle.load(f)
+        with open(cachefile, 'rb') as f:
+            recs = pickle.load(f)
         try:
             recs[imagenames[0]]
             recs[imagenames[10]]
@@ -146,6 +147,7 @@ def voc_eval(detpath,
     detfile = detpath.format(classname)
     with open(detfile, 'r') as f:
         lines = f.readlines()
+        print (lines)
     if any(lines) == 1:
 
         splitlines = [x.strip().split(' ') for x in lines]
