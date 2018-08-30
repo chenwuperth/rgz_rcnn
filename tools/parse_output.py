@@ -60,7 +60,8 @@ def _convert_source2box(source):
 
     source:   a list of components inside a source
     """
-    pass
+    if (len(source) > 1):
+        print(source)
 
 def _get_fits_mbr(fin, row_ignore_factor=10):
     hdulist = pyfits.open(fin)
@@ -118,6 +119,29 @@ def _setup_db_pool():
     from psycopg2.pool import ThreadedConnectionPool
     return ThreadedConnectionPool(1, 3, database='chen', user='chen')
 
+def convert_sky2box(catalog_csv_file, split_fits_dir):
+    """
+    1. work out which fits file each record belong to
+    """
+
+    # build out the fits header cache to handle queries like:
+    # does this point inside this fits file?
+
+    with open(catalog_csv_file, 'r') as fin:
+        cpnlist = fin.read().splitlines()
+    cpnlist = sorted(cpnlist[1:], key=lambda x: int(x.split(',')[0]))
+    last_sid = cpnlist[0].split(',')[0]
+    last_source = []
+    for cpnline in cpnlist:
+        cpn = cpnline.split(',')
+        sid = cpn[0]
+        if (last_sid != sid):
+            _convert_source2box(last_source)
+            last_source = []
+        #last_source.append(cpn)
+        last_source.append(sid)
+        last_sid = sid
+
 def build_fits_cutout_index(fits_cutout_dir,
                             prefix='gama_linmos_corrected_clipped',
                             tablename='onedegree'):
@@ -147,37 +171,17 @@ def build_fits_cutout_index(fits_cutout_dir,
         conn.commit()
     g_db_pool.putconn(conn)
 
-
-def convert_sky2box(catalog_csv_file, split_fits_dir):
-    """
-    1. work out which fits file each record belong to
-    """
-
-    # build out the fits header cache to handle queries like:
-    # does this point inside this fits file?
-
-    with open(catalog_csv_file, 'r') as fin:
-        cpnlist = fin.read().splitlines()
-    
-    last_sid = -1
-    last_source = []
-    for cpnline in cpnlist[1:]:
-        cpn = cpnline.split(',')
-        sid = cpn[0]
-        # assuming the caltalog is sorted based on the source id (island id)
-        if (last_sid != sid):
-            _convert_source2box(last_source)
-            # more here
-        else:
-            last_source.append(cpn)
-
 if __name__ == '__main__':
     """ detpath = "/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/results"\
     "/RGZ2017/pleiades/comp4_det_testD4_2_3.txt"
 
     fitsdir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/RGZ2017/FITSImages'
     convert_box2sky(detpath, fitsdir, '/tmp') """
-    fits_fn = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23/split_fits/' + \
+    emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23' 
+    fits_fn = emu_path + '/split_fits/' + \
               '1deg/gama_linmos_corrected_clipped4-0.fits'
     fits_fn_path = fits_fn.replace('/gama_linmos_corrected_clipped4-0.fits', '')
     # build_fits_cutout_index(fits_fn_path)
+    catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
+    #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
+    convert_sky2box(catalog_csv, fits_fn_path)
