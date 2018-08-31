@@ -19,7 +19,8 @@ for year in ['2017']:
     for split in ['trainD1', 'testD1',
                   'trainD3', 'testD3',
                   'trainD4', 'testD4',
-                  'trainD5', 'testD5']:
+                  'trainD5', 'testD5',
+				  'allD1']:
         name = 'rgz_{}_{}'.format(year, split)
         print('Loading dataset %s' % name)
         __sets[name] = (lambda split=split, year=year:
