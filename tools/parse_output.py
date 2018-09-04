@@ -148,7 +148,7 @@ def convert_box2sky(detpath, fitsdir, outpath, threshold=0.8):
             print('%.4f,%.4f,%s' % (ra, dec, osp.basename(fname)))
 
 
-def _convert_source2box(source, fits_dir, table_name):
+def _convert_source2box(source, fits_dir, table_name, conn):
     """
     for each component C in the catalog, this function outputs two things:
 
@@ -162,15 +162,14 @@ def _convert_source2box(source, fits_dir, table_name):
     """
     # if (len(source) > 1):
     #     print(source)
+    pix_resolution = 0.0011 #pixel angular resolution
     agg_res = np.zeros([len(source), 4])
-    g_db_pool = _setup_db_pool()
-    conn = g_db_pool.getconn()
     #thirtyarcmin_960mhz
     for i, c in enumerate(source):
         ra, dec, major, minor, pa = float(c[6]), float(c[8]), float(c[14]), \
                                     float(c[16]), float(c[18])
         sqlStr = "select fileid from %s where coverage ~ scircle " % table_name +\
-                 "'<(%fd, %fd), 0.0d>'" % (ra, dec)
+                 "'<(%fd, %fd), %fd>'" % (ra, dec, pix_resolution)
         cur = conn.cursor(sqlStr)
         cur = conn.cursor()
         cur.execute(sqlStr)
@@ -193,49 +192,23 @@ def _get_fits_mbr(fin, row_ignore_factor=10):
     hdulist = pyfits.open(fin)
     data = hdulist[0].data
     wcs = pywcs.WCS(hdulist[0].header)
-
-    RA_min = 10000
-    RA_max = -10000
-    DEC_min = 10000
-    DEC_max = -10000
     width = data.shape[1]
     height = data.shape[0]
 
-    for j in xrange(height):
-        row = data[j, :]
-        indices = np.where(~np.isnan(row))[0]
-        if (len(indices) > 2):
-            left = [indices[0], j, 0, 0]  # the first index (min)
-            right = [indices[-1], j, 0, 0] # the last index (max
-            sky_lr = []
-            sky_lr.append(wcs.wcs_pix2world([left], 0)[0][0:2])
-            sky_lr.append(wcs.wcs_pix2world([right], 0)[0][0:2])
-            if (sky_lr[1][0] > sky_lr[0][0]):
-                sky_lr[1][0] -= 360.0
-            if (sky_lr[1][0] < RA_min):
-                RA_min = sky_lr[1][0]
-            if (sky_lr[0][0] > RA_max):
-                RA_max = sky_lr[0][0]
-    
-    for i in xrange(width):
-        col = data[:, i]
-        indices = np.where(~np.isnan(col))[0]
-        if (0 == len(indices)):
-            continue
-        top = [i, indices[-1], 0, 0]
-        bottom = [i, indices[0], 0, 0]
-    
-    sky_tb = []
-    sky_tb.append(wcs.wcs_pix2world([top], 0)[0][0:2])
-    sky_tb.append(wcs.wcs_pix2world([bottom], 0)[0][0:2])
-    if (sky_tb[1][1] < DEC_min):
-        DEC_min = sky_tb[1][1]
-    if (sky_tb[0][1] > DEC_max):
-        DEC_max = sky_tb[0][1]
-    if (RA_min < 0):
-        RA_min += 360
-    if (RA_max < 0):
-        RA_max += 360
+    bottom_left = [0, 0, 0, 0]
+    top_left = [0, height - 1, 0, 0]
+    top_right = [width - 1, height - 1, 0, 0]
+    bottom_right = [width - 1, 0, 0, 0]
+
+    def pix2sky(pix_coord):
+        return wcs.wcs_pix2world([pix_coord], 0)[0][0:2]
+
+    ret = np.zeros([4, 2])
+    ret[0, :] = pix2sky(bottom_left)
+    ret[1, :] = pix2sky(top_left)
+    ret[2, :] = pix2sky(top_right)
+    ret[3, :] = pix2sky(bottom_right)
+    RA_min, DEC_min, RA_max, DEC_max = np.min(ret[:, 0]),   np.min(ret[:, 1]),  np.max(ret[:, 0]),  np.max(ret[:, 1])
     
     # http://pgsphere.projects.pgfoundry.org/types.html
     sqlStr = "SELECT sbox '((%10fd, %10fd), (%10fd, %10fd))'" % (RA_min, DEC_min, RA_max, DEC_max)
@@ -259,11 +232,13 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     last_sid = cpnlist[0].split(',')[0]
     last_source = []
     not_found = []
+    g_db_pool = _setup_db_pool()
+    conn = g_db_pool.getconn()
     for cpnline in cpnlist:
         cpn = cpnline.split(',')
         sid = cpn[0]
         if (last_sid != sid):
-            ret = _convert_source2box(last_source, split_fits_dir, table_name)
+            ret = _convert_source2box(last_source, split_fits_dir, table_name, conn)
             if (ret is None):
                 not_found.append(sid)
             last_source = []
@@ -273,6 +248,7 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     
     print("%d not found" % len(not_found))
     print(not_found)
+    g_db_pool.putconn(conn)
 
 def build_fits_cutout_index(fits_cutout_dir,
                             prefix='gama_low_all_corrected_clipped',
@@ -312,8 +288,8 @@ if __name__ == '__main__':
     emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23' 
     fits_fn = emu_path + '/split_fits/' + \
               '1deg/gama_linmos_corrected_clipped4-0.fits'
-    fits_fn_path = osp.join(emu_path, 'split_fits_1deg_960MHz')
-    #build_fits_cutout_index(fits_fn_path, tablename='thirtyarcmin_960mhz')
-    #catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
-    catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_960mhz')
+    fits_fn_path = osp.join(emu_path, 'split_fits_1deg_1368MHz')
+    #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
+    catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
+    #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
+    convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
