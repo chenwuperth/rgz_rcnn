@@ -20,23 +20,24 @@ import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 
 from string import Template
+from collections import defaultdict
 
 anno_tpl_str = """<annotation>
-        <folder>EMU2018</folder>
-        <filename>${emu_id}.png</filename>
+        <folder>${one_level_up_folder}</folder>
+        <filename>${file_id}.png</filename>
         <source>
                 <database>The EMU Database</database>
                 <annotation>EMU2018</annotation>
                 <image>gama23-emu</image>
-                <flickrid>${emu_id}</flickrid>
+                <flickrid>${file_id}</flickrid>
         </source>
         <owner>
                 <flickrid>emuid</flickrid>
                 <name>emu-member</name>
         </owner>
         <size>
-                <width>${pic_size}</width>
-                <height>${pic_size}</height>
+                <width>${pic_size_width}</width>
+                <height>${pic_size_height}</height>
                 <depth>3</depth>
         </size>
         <segmented>0</segmented>
@@ -61,7 +62,10 @@ bbox_tpl_str = """
 anno_tpl = Template(anno_tpl_str)
 bbox_tpl = Template(bbox_tpl_str)
 
-def _gen_single_bbox(fits_fn, ra, dec, major, minor, pa, major_scale=1.0, png_size=None, padx=True):
+
+# key - fits path, value -  a list of boxes, each denoting a complete source
+
+def _gen_single_bbox(fits_fn, ra, dec, major, minor, pa, major_scale=1.2, png_size=None, padx=True):
     """
     Form the bbox BEFORE converting wcs to the pixel coordinates
     major and mior are in arcsec
@@ -70,8 +74,7 @@ def _gen_single_bbox(fits_fn, ra, dec, major, minor, pa, major_scale=1.0, png_si
     dec = float(dec)
     hdulist = pyfits.open(fits_fn)
     w = pywcs.WCS(hdulist[0].header)
-    origin_pic_size = hdulist[0].data.shape[0]
-    #print('origin_pic_size = %d' % origin_pic_size)
+    x_height, y_width = hdulist[0].data.shape
     ang = major * major_scale / 3600.0 
     res_x = abs(hdulist[0].header['CDELT1'])
     width = int(ang / res_x)
@@ -94,31 +97,30 @@ def _gen_single_bbox(fits_fn, ra, dec, major, minor, pa, major_scale=1.0, png_si
     # Astronomy pixel (0,0) starts from bottom left, but computer vision images
     # (PNG, JPEG) starts from top left, so need to convert them again
     t = yp_min
-    yp_min = origin_pic_size - yp_max
-    yp_max = origin_pic_size - t
+    yp_min = y_width - yp_max
+    yp_max = y_width - t
 
     # crop it around the border
     xp_min = int(math.ceil(max(xp_min, 1)))
     yp_min = int(math.ceil(max(yp_min, 1)))
-    xp_max = int(math.floor(min(xp_max, origin_pic_size - 1)))
-    yp_max = int(math.floor(min(yp_max, origin_pic_size - 1)))
+    xp_max = int(math.floor(min(xp_max, x_height - 1)))
+    yp_max = int(math.floor(min(yp_max, y_width - 1)))
 
     if (padx and (xp_max - xp_min < width)):
         dw = width - (xp_max - xp_min)
         xp_max += dw / 2
-        xp_max = int(math.floor(min(xp_max, origin_pic_size - 1)))
+        xp_max = int(math.floor(min(xp_max, x_height - 1)))
         xp_min -= dw / 2
         xp_min = int(math.ceil(max(xp_min, 1)))
     #print('x', xmin, xmax, xp_min, xp_max, xp_max - xp_min)
     #print('y', ymin, ymax, yp_min, yp_max, yp_max - yp_min)
-    if ((png_size is not None) and (png_size != origin_pic_size)):  # need to scale the bbox
-        ratio = float(png_size) / origin_pic_size
-        xp_min = int(ratio * xp_min)
-        yp_min = int(ratio * yp_min)
-        xp_max = int(ratio * xp_max)
-        yp_max = int(ratio * yp_max)
-
-    return (xp_min, yp_min, xp_max, yp_max)
+    # if ((png_size is not None) and (png_size != origin_pic_size)):  # need to scale the bbox
+    #     ratio = float(png_size) / origin_pic_size
+    #     xp_min = int(ratio * xp_min)
+    #     yp_min = int(ratio * yp_min)
+    #     xp_max = int(ratio * xp_max)
+    #     yp_max = int(ratio * yp_max)
+    return (xp_min, yp_min, xp_max, yp_max, x_height, y_width)
 
 def convert_box2sky(detpath, fitsdir, outpath, threshold=0.8):
     """
@@ -177,15 +179,17 @@ def _convert_source2box(source, fits_dir, table_name, conn):
         if (not res or len(res) == 0):
             print("fail to find fits file {0}".format(sqlStr))
             return None
-        fits_path = osp.join(fits_dir,res[0][0])
+        fits_path = osp.join(fits_dir, res[0][0])
         if (not (osp.exists(fits_path))):
             raise Exception('fits file not found %s' % fits_path)
-        agg_res[i, :] = _gen_single_bbox(fits_path, ra, dec, major, minor, pa)
-    x1 = np.min(agg_res[:, 0])
-    y1 = np.min(agg_res[:, 1])
-    x2 = np.max(agg_res[:, 2])
-    y2 = np.max(agg_res[:, 3])
-    return (x1, y1, x2, y2)
+        box_re = _gen_single_bbox(fits_path, ra, dec, major, minor, pa)
+        agg_res[i, :] = box_re[0:4]
+    x1 = int(np.min(agg_res[:, 0]))
+    y1 = int(np.min(agg_res[:, 1]))
+    x2 = int(np.max(agg_res[:, 2]))
+    y2 = int(np.max(agg_res[:, 3]))
+    return (fits_path, x1, y1, x2, y2, box_re[4], box_re[5], 
+            '%dC' % len(source))
 
 
 def _get_fits_mbr(fin, row_ignore_factor=10):
@@ -225,7 +229,7 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
 
     # build out the fits header cache to handle queries like:
     # does this point inside this fits file?
-
+    fits_box_dict = defaultdict(list)
     with open(catalog_csv_file, 'r') as fin:
         cpnlist = fin.read().splitlines()
     cpnlist = sorted(cpnlist[1:], key=lambda x: int(x.split(',')[0]))
@@ -239,6 +243,7 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
         sid = cpn[0]
         if (last_sid != sid):
             ret = _convert_source2box(last_source, split_fits_dir, table_name, conn)
+            fits_box_dict[ret[0]].append(ret[1:])
             if (ret is None):
                 not_found.append(sid)
             last_source = []
@@ -249,6 +254,26 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     print("%d not found" % len(not_found))
     print(not_found)
     g_db_pool.putconn(conn)
+    return fits_box_dict
+
+def write_annotations(fits_box_dict, out_dir):
+    for fits_path, boxes in fits_box_dict.items():
+        fp, ext = osp.splitext(fits_path)
+        upper_dir = fp.split(os.sep)[-1]
+        file_id = osp.basename(fits_path)
+        radio_sources = []
+        for box in boxes:
+            obj_dict = {'class_name': box[-1], 'xmin': box[0], 'ymin': box[1],
+                    'xmax': box[2], 'ymax': box[3]}
+            obj_str = bbox_tpl.safe_substitute(obj_dict)
+            radio_sources.append(obj_str)
+        anno_str = anno_tpl.\
+        safe_substitute({'file_id': file_id, 'bbox': ''.join(radio_sources),
+                         'pic_size_height': box[4], 'pic_size_width': box[5], 
+                         'one_level_up_folder': upper_dir})
+        anno_fn = osp.join(out_dir, file_id.replace(ext, '.xml'))
+        with open(anno_fn, 'w') as fo:
+            fo.write(anno_str)
 
 def build_fits_cutout_index(fits_cutout_dir,
                             prefix='gama_low_all_corrected_clipped',
@@ -292,4 +317,5 @@ if __name__ == '__main__':
     #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
     catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
     #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
+    fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
+    write_annotations(fits_box_dict, '/tmp')
