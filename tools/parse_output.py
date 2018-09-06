@@ -238,11 +238,14 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     not_found = []
     g_db_pool = _setup_db_pool()
     conn = g_db_pool.getconn()
+    more_than_one = 0
     for cpnline in cpnlist:
         cpn = cpnline.split(',')
         sid = cpn[0]
         if (last_sid != sid):
             ret = _convert_source2box(last_source, split_fits_dir, table_name, conn)
+            if (int(ret[-1].split('C')[0]) > 1):
+                more_than_one += 1
             fits_box_dict[ret[0]].append(ret[1:])
             if (ret is None):
                 not_found.append(sid)
@@ -250,10 +253,11 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
         last_source.append(cpn)
         #last_source.append(sid)
         last_sid = sid
-    
-    print("%d not found" % len(not_found))
-    print(not_found)
+    if (len(not_found) > 0):
+        print("%d not found" % len(not_found))
+        print(not_found)
     g_db_pool.putconn(conn)
+    print('Multi component sources: %d' % more_than_one)
     return fits_box_dict
 
 def write_annotations(fits_box_dict, out_dir):
