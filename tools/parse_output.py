@@ -18,6 +18,7 @@ import numpy as np
 
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
+from astropy.coordinates import SkyCoord
 
 from string import Template
 from collections import defaultdict
@@ -308,6 +309,55 @@ def build_fits_cutout_index(fits_cutout_dir,
         conn.commit()
     g_db_pool.putconn(conn)
 
+def change_file_names(fits_dir, png_dir):
+    """
+    rename the image file names (both fits and png) to something similar to
+    RGZ, e.g.
+    EMUJ144637.3+591919_960MHz_1deg.fits
+    EMUJ144637.3+591919_1368MHz_30arcmin.png
+    """
+
+    def round_second(t, decimal=3):
+        if (t.endswith('s')):
+            t = t[:-1]
+        l, r = t.split('.')
+        if (len(r) < decimal):
+            r += '0' * (decimal - len(r))
+        return l + '.' + r[0:decimal]
+
+    def clean_pos(c):
+        l, r = c.to_string('hmsdms').split()
+        pos = round_second(l) + ' ' + round_second(r)
+        for r in 'hmsd ':
+            pos = pos.replace(r, '')
+        return 'EMUJ%s' % pos
+
+    fits_suffix = fits_dir.split(os.sep)[-1].split('split_fits_')[0]
+    png_suffix = png_dir.split(os.sep)[-1].split('split_png_')[0]
+    if (fits_suffix != png_suffix):
+        raise Exception('%s != %s' % (fits_suffix, png_suffix))
+    
+    for fn in os.listdir(fits_dir):
+        basename, ext = osp.splitext(fn)
+        if (not ext in ['.fits', '.FITS']):
+            continue
+        png_path = osp.join(png_dir, basename  + '.png')
+        if (not osp.exists(png_path)):
+            png_path = osp.join(png_dir, fn + '_logminmax_radio.png')
+            if (not osp.exists(png_path)):
+                raise Exception('PNG file not found %s' % png_path)
+        fits_path = osp.join(fits_dir, fn)
+        hdulist = pyfits.open(fits_path)
+        data = hdulist[0].data
+        wcs = pywcs.WCS(hdulist[0].header)
+        width = data.shape[1]
+        height = data.shape[0]
+        pix_coord = [width // 2, height // 2, 0, 0]
+        center_sky = wcs.wcs_pix2world([pix_coord], 0)[0][0:2]
+        c = SkyCoord(center_sky[0], center_sky[1], frame='fk5', unit='deg')
+        new_nm = clean_pos(c)
+        print(new_nm)
+        
 if __name__ == '__main__':
     """ detpath = "/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/results"\
     "/RGZ2017/pleiades/comp4_det_testD4_2_3.txt"
@@ -321,5 +371,6 @@ if __name__ == '__main__':
     #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
     catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
     #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
-    write_annotations(fits_box_dict, '/tmp')
+    #fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
+    #write_annotations(fits_box_dict, '/tmp')
+    change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
