@@ -273,7 +273,7 @@ def write_annotations(fits_box_dict, out_dir):
             obj_str = bbox_tpl.safe_substitute(obj_dict)
             radio_sources.append(obj_str)
         anno_str = anno_tpl.\
-        safe_substitute({'file_id': file_id, 'bbox': ''.join(radio_sources),
+        safe_substitute({'file_id': upper_dir, 'bbox': ''.join(radio_sources),
                          'pic_size_height': box[4], 'pic_size_width': box[5], 
                          'one_level_up_folder': upper_dir})
         anno_fn = osp.join(out_dir, file_id.replace(ext, '.xml'))
@@ -315,6 +315,7 @@ def change_file_names(fits_dir, png_dir):
     RGZ, e.g.
     EMUJ144637.3+591919_960MHz_1deg.fits
     EMUJ144637.3+591919_1368MHz_30arcmin.png
+    also change the name in the postgresql database
     """
 
     def round_second(t, decimal=3):
@@ -331,32 +332,58 @@ def change_file_names(fits_dir, png_dir):
         for r in 'hmsd ':
             pos = pos.replace(r, '')
         return 'EMUJ%s' % pos
-
+    
+    def get_table_name():
+        t = '_'.join(png_dir.split(os.sep)[-1].split('_')[2:])
+        return t.replace('1deg', 'onedegree').replace('30arcmin', 'thirtyarcmin').\
+                 replace('MHz', 'mhz')
+        
     fits_suffix = fits_dir.split(os.sep)[-1].split('split_fits_')[0]
     png_suffix = png_dir.split(os.sep)[-1].split('split_png_')[0]
     if (fits_suffix != png_suffix):
         raise Exception('%s != %s' % (fits_suffix, png_suffix))
     
+    tbl = get_table_name()
+    
+    tbl_type_dict = dict()
+    tbl_type_dict['thirtyarcmin_960mhz'] = 'E1'
+    tbl_type_dict['thirtyarcmin_1368mhz'] = 'E2'
+    tbl_type_dict['onedegree_960mhz'] = 'E3'
+    tbl_type_dict['onedegree_1368mhz'] = 'E4'
+    dtype = tbl_type_dict[tbl]
+
+    g_db_pool = _setup_db_pool()
+    conn = g_db_pool.getconn()
     for fn in os.listdir(fits_dir):
         basename, ext = osp.splitext(fn)
         if (not ext in ['.fits', '.FITS']):
             continue
         png_path = osp.join(png_dir, basename  + '.png')
         if (not osp.exists(png_path)):
-            png_path = osp.join(png_dir, fn + '_logminmax_radio.png')
-            if (not osp.exists(png_path)):
-                raise Exception('PNG file not found %s' % png_path)
+            raise Exception('PNG file not found %s' % png_path)
+
         fits_path = osp.join(fits_dir, fn)
-        hdulist = pyfits.open(fits_path)
-        data = hdulist[0].data
-        wcs = pywcs.WCS(hdulist[0].header)
-        width = data.shape[1]
-        height = data.shape[0]
-        pix_coord = [width // 2, height // 2, 0, 0]
-        center_sky = wcs.wcs_pix2world([pix_coord], 0)[0][0:2]
-        c = SkyCoord(center_sky[0], center_sky[1], frame='fk5', unit='deg')
-        new_nm = clean_pos(c)
-        print(new_nm)
+        # hdulist = pyfits.open(fits_path)
+        # data = hdulist[0].data
+        # wcs = pywcs.WCS(hdulist[0].header)
+        # width = data.shape[1]
+        # height = data.shape[0]
+        # pix_coord = [width // 2, height // 2, 0, 0]
+        # center_sky = wcs.wcs_pix2world([pix_coord], 0)[0][0:2]
+        # c = SkyCoord(center_sky[0], center_sky[1], frame='fk5', unit='deg')
+        # new_nm = clean_pos(c) + '.fits'
+        new_nm = basename + '_%s' % dtype + '.fits'
+        os.rename(fits_path, osp.join(fits_dir, new_nm))
+        os.rename(png_path, osp.join(png_dir, new_nm.replace('.fits', '.png')))
+        sqlStr = """UPDATE %s SET fileid = '%s' WHERE fileid = '%s' """
+        sqlStr = sqlStr % (tbl, new_nm, fn)
+        print(sqlStr)
+        cur = conn.cursor()
+        cur.execute(sqlStr)
+        conn.commit()
+
+    print('table: %s' % tbl)
+    g_db_pool.putconn(conn)
         
 if __name__ == '__main__':
     """ detpath = "/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/results"\
@@ -367,10 +394,10 @@ if __name__ == '__main__':
     emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23' 
     fits_fn = emu_path + '/split_fits/' + \
               '1deg/gama_linmos_corrected_clipped4-0.fits'
-    fits_fn_path = osp.join(emu_path, 'split_fits_1deg_1368MHz')
+    fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_1368MHz')
     #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
     catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
     #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    #fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'onedegree_1368mhz')
-    #write_annotations(fits_box_dict, '/tmp')
-    change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
+    fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_1368mhz')
+    write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
+    #change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
