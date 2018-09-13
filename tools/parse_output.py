@@ -22,6 +22,11 @@ from astropy.coordinates import SkyCoord
 
 from string import Template
 from collections import defaultdict
+import cv2
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 anno_tpl_str = """<annotation>
         <folder>${one_level_up_folder}</folder>
@@ -280,6 +285,94 @@ def write_annotations(fits_box_dict, out_dir):
         with open(anno_fn, 'w') as fo:
             fo.write(anno_str)
 
+def _draw_boxes(png_file, boxes, out_dir, box_color='white'):
+    im = cv2.imread(png_file)
+    h, w, _ = im.shape
+    my_dpi = 100.0
+    fig = plt.figure()
+    fig.set_size_inches(h / my_dpi, w / my_dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    ax.set_xlim([0, w])
+    ax.set_ylim([h, 0])
+    im = im[:, :, (2, 1, 0)]
+    ax.imshow(im, aspect='equal')
+
+    for i in range(len(boxes)):
+        bbox = boxes[i, :]
+        ax.add_patch(
+            plt.Rectangle((bbox[0], bbox[1]),
+                          bbox[2] - bbox[0],
+                          bbox[3] - bbox[1], fill=False,
+                          edgecolor=box_color, linewidth=1.0)
+            )
+    
+    plt.axis('off')
+    plt.draw()
+    plt.savefig(osp.join(out_dir, osp.basename(png_file).replace('.png', '_b.png')))
+
+def check_annotations(anno_dir, png_dir, out_dir):
+    """
+    check if the annotation looks right by drawing boxes on the png
+    and dump the result to the out_dir 
+    """
+    import xml.etree.ElementTree as ET
+    for fn in os.listdir(anno_dir):
+        filename = osp.join(anno_dir, fn)
+        if (not filename.endswith('_E1.xml')):
+            continue
+        tree = ET.parse(filename)
+        objs = tree.findall('object')
+        num_objs = len(objs)
+        boxes = np.zeros((num_objs, 4), dtype=np.uint16)
+        for ix, obj in enumerate(objs):
+            bbox = obj.find('bndbox')
+            # Make pixel indexes 0-based
+            x1 = float(bbox.find('xmin').text) - 1
+            y1 = float(bbox.find('ymin').text) - 1
+            x2 = float(bbox.find('xmax').text) - 1
+            y2 = float(bbox.find('ymax').text) - 1
+            boxes[ix, :] = [x1, y1, x2, y2]
+            #cls = obj.find('name').text.lower().strip()
+        png_file = osp.join(png_dir, fn.replace('.xml', '.png'))
+        _draw_boxes(png_file, boxes, out_dir)
+        #break
+
+def check_predictions(pred_dir, png_dir, out_dir, threshold=0.1):
+    """
+    """
+    pred_dict = defaultdict(list)
+    for fn in os.listdir(pred_dir):
+        filename = osp.join(pred_dir, fn)
+        if (not filename.endswith('c.txt')):
+            continue
+        with open(filename, 'r') as fin:
+            mylist = fin.read().splitlines()
+            for line in mylist:
+                fds = line.split()
+                score = fds[1]
+                emu_id = fds[0]
+                if (float(score) < threshold):
+                    continue
+                pred_dict[emu_id].append(fds[2:])
+
+    for fn in os.listdir(png_dir):
+        emu_id, _ = osp.splitext(fn.replace('_b', ''))
+        if (emu_id in pred_dict):
+            objs = pred_dict[emu_id]
+            num_objs = len(objs)
+            print(emu_id, num_objs)
+            boxes = np.zeros((num_objs, 4), dtype=np.uint16)
+            for ix, bbox in enumerate(objs):
+                x1 = float(bbox[0])
+                y1 = float(bbox[1])
+                x2 = float(bbox[2])
+                y2 = float(bbox[3])
+                boxes[ix, :] = [x1, y1, x2, y2]
+            png_file = osp.join(png_dir, fn)
+            _draw_boxes(png_file, boxes, out_dir, box_color='red')
+
 def build_fits_cutout_index(fits_cutout_dir,
                             prefix='gama_low_all_corrected_clipped',
                             tablename='onedegree'):
@@ -394,10 +487,18 @@ if __name__ == '__main__':
     emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23' 
     fits_fn = emu_path + '/split_fits/' + \
               '1deg/gama_linmos_corrected_clipped4-0.fits'
-    fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_1368MHz')
+    #fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_960MHz')
     #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
-    catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
+    #catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
     #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_1368mhz')
-    write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
+    #fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_960mhz')
+    #write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
     #change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
+    anno_dir = osp.join(emu_path, 'emu_claran_dataset', 'annotations')
+    png_dir = osp.join(emu_path, 'emu_claran_dataset', 'png')
+    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_anno')
+    pred_dir = osp.join(emu_path, 'emu_claran_dataset', 'predictions', '264_w')
+    #check_annotations(anno_dir, png_dir, out_dir)
+    png_dir = out_dir
+    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_pred')
+    check_predictions(pred_dir, png_dir, out_dir)
