@@ -27,6 +27,7 @@ import matplotlib.patches as patches
 #cutout_cmd = '{0} -sv -o %s -d %s %s %s %s J2000 %d %d'.format(getfits_exec)
 
 #subimg_exec = '/Users/Chen/proj/Montage_v3.3/Montage/mSubimage -d' #degree
+ds9_path = '/Applications/SAOImageDS9.app/Contents/MacOS/ds9'
 montage_path = '/Users/chen/Downloads/Montage/bin'
 subimg_exec = '%s/mSubimage' % montage_path
 regrid_exec = '%s/mProject' % montage_path
@@ -279,15 +280,33 @@ def regrid(split_fits_dir):
             cmd = '%s %s %s %s' % (regrid_exec, infile, outfile, hdr_tpl)
             print(cmd)
 
+def fits2png(fits_dir, png_dir):
+    """
+    Convert fits to png files based on the D1 method
+    """
+    cmd_tpl = '%s -cmap Cool'\
+        ' -zoom to fit -scale log -scale mode minmax -export %s -exit'
+    from sh import Command
+    ds9 = Command(ds9_path)
+    #fits = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23/split_fits/30arcmin/gama_linmos_corrected_clipped0-0.fits'
+    #png = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23/split_png/30arcmin/gama_linmos_corrected_clipped0-0.png'
+    for fits in os.listdir(fits_dir):
+        if (fits.endswith('.fits')):
+            png = fits.replace('.fits', '.png')
+            cmd = cmd_tpl % (osp.join(fits_dir, fits), osp.join(png_dir, png))
+            ds9(*(cmd.split()))
+
+
 if __name__ == '__main__':
     #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
     root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23'
-    # fname = osp.join(root_dir, 'gama_linmos_corrected.fits')
-    # clip_file(fname)
+    #fname = osp.join(root_dir, 'gama_low_all_corrected.fits')
+    #clip_file(fname)
 
-    #fname = osp.join(root_dir, 'gama_linmos_corrected_clipped.fits')
+    #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
     #vo_get(osp.join(root_dir, 'split_fits/1deg'))
     #download_wise(osp.join(root_dir, 'split_fits/1deg'))
-    prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
+    #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
     #regrid(osp.join(root_dir, 'split_fits/1deg'))
+    fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
