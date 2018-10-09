@@ -102,8 +102,9 @@ def fuse(fits_fn, ir_fn, output_dir, sigma_level=5, mask_ir=True, new_size=None,
 
     # Create matplotlib path for contours
     path = Path(verts_all, codes_all)
-    ecolor = 'blue' if mask_ir else 'limegreen'
-    linew = 0.25 if mask_ir else 0.25
+    #ecolor = 'blue' if mask_ir else 'limegreen'
+    ecolor = 'blue'# if mask_ir else 'blue'
+    linew = 0.25# if mask_ir else 0.25
     if (new_size is not None):
         linew = 0.35
     patch_contour = patches.PathPatch(path, facecolor='none',

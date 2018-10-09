@@ -110,7 +110,8 @@ def vis_detections_new(im, class_name, dets, ax, thresh=0.5):
     plt.draw()
     return len(inds)
 
-def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True):
+def demo(sess, net, im_file, vis_file, fits_fn, 
+         conf_thresh=0.8, eval_class=True, extra_vis_png=False):
     """
     Detect object classes in an image using pre-computed object proposals.
     im_file:    The "fused" image file path
@@ -153,7 +154,7 @@ def demo(sess, net, im_file, vis_file, fits_fn, conf_thresh=0.8, eval_class=True
     im = cv2.resize(im, (show_img_size, show_img_size))
     im = im[:, :, (2, 1, 0)]
     ax.imshow(im, aspect='equal')
-    if (fits_fn is not None):
+    if ((fits_fn is not None) and (not extra_vis_png)):
         patch_contour = fuse(fits_fn, im, None, sigma_level=4, mask_ir=False,
                              get_path_patch_only=True)
         ax.add_patch(patch_contour)
@@ -231,6 +232,9 @@ def parse_args():
     parser.add_argument('--radio-png', dest='radio_png',
                         help='full path of the radio png file (only for D1 method)',
                         default=None, type=str)
+    parser.add_argument('--vis-png', dest='vis_png',
+                        help='full path of the visualisation png file',
+                        default=None, type=str)
 
     args = parser.parse_args()
     if ('D1' != args.model):
@@ -302,7 +306,7 @@ if __name__ == '__main__':
         vis_file = args.radio_png
     else:
         im_file = fuse_radio_ir_4_pred(args.radio_fits, args.ir_png, model=args.model)
-        vis_file = args.ir_png
+        vis_file = args.ir_png if args.vis_png is None else args.vis_png
     #print("im_file", im_file)
     if (im_file is None):
         print("Error in generating contours")
@@ -327,7 +331,7 @@ if __name__ == '__main__':
     sys.stdout.write("Detecting radio sources... ")
     sys.stdout.flush()
     ret = demo(sess, net, im_file, vis_file, args.radio_fits, conf_thresh=args.conf_thresh,
-               eval_class=(not args.eval_eoi))
+               eval_class=(not args.eval_eoi), extra_vis_png=args.vis_png is not None)
     if (-1 == ret):
         print('Fail to detect in %s' % args.radio_fits)
     else:
