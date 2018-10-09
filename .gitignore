@@ -1,6 +1,8 @@
 # all images and annotations
 *.png
 *.xml
+*.fits
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -101,3 +103,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+data/EMU_GAMA23/
