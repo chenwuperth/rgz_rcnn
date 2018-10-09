@@ -497,8 +497,8 @@ if __name__ == '__main__':
     anno_dir = osp.join(emu_path, 'emu_claran_dataset', 'annotations')
     png_dir = osp.join(emu_path, 'emu_claran_dataset', 'png')
     out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_anno')
-    pred_dir = osp.join(emu_path, 'emu_claran_dataset', 'predictions', '264_w')
+    pred_dir = osp.join(emu_path, 'emu_claran_dataset', 'predictions', '600_w_3088')
     #check_annotations(anno_dir, png_dir, out_dir)
     png_dir = out_dir
-    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_pred')
+    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_pred', '600_w_3088')
     check_predictions(pred_dir, png_dir, out_dir)
