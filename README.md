@@ -64,12 +64,16 @@ Feel free to open an issue to discuss any questions not covered so far.
 If you benefit from this code, please cite our paper:
 
 ```
-@article{wu2018rgzrcnn,
-  title={Radio Galaxy Zoo: ClaRAN — a deep learning classifier for radio morphologies},
-  author={Wu C, Wong O. i., Rudnick L., Shabala S. S., Alger M. J., Banfield, J. K., Ong C. S., White S. V., Garon A. F., Norris R. P., Andernach H. A., Tate, J., Lukic V., Tang H., Schawinski K., Diakogiannis F. I.},
-  journal={Monthly Notices of the Royal Astronomical Society},
-  month={October},
-  year={2018}
+@article{doi:10.1093/mnras/sty2646,
+author = {Wu, Chen and Wong, Oiwei Ivy and Rudnick, Lawrence and Shabala, Stanislav S and Alger, Matthew J and Banfield, Julie K and Ong, Cheng Soon and White, Sarah V and Garon, Avery F and Norris, Ray P and Andernach, Heinz and Tate, Jean and Lukic, Vesna and Tang, Hongming and Schawinski, Kevin and Diakogiannis, Foivos I},
+title = {Radio Galaxy Zoo: ClaRAN – a deep learning classifier for radio morphologies},
+journal = {Monthly Notices of the Royal Astronomical Society},
+volume = {482},
+number = {1},
+pages = {1211-1230},
+year = {2019},
+doi = {10.1093/mnras/sty2646},
+URL = {http://dx.doi.org/10.1093/mnras/sty2646}
 }
 ```
 ## Acknowledgement
