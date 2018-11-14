@@ -264,23 +264,36 @@ def prepare_coadd(split_fits_dir):
                 cmd = '%s %s %s %s' % (coadd_exec, tbl_fn, hdr_tpl, outfile)
                 print(cmd)
 
-def regrid(split_fits_dir):
+def regrid(emu_fits_dir, ir_fits_dir):
     """ 
     3. cutout the image to have a slightly larger angular size than the EMU image
     4. reproject the cutout IR image onto the same grid as the EMU radio image
     """
-    for fn in os.listdir(split_fits_dir):
-        fname = osp.join(split_fits_dir, fn)
-        if (fname.endswith('.fits') and fname.find('wise') == -1):
-            file = pyfits.open(fname)
+    for fn in os.listdir(ir_fits_dir):
+        fname = osp.join(ir_fits_dir, fn)
+        if (fname.endswith('.fits') and fname.find('_wise') > -1):
+            emu_fits = osp.join(emu_fits_dir, fn.replace('_wise', ''))
+            file = pyfits.open(emu_fits)
             head = file[0].header.copy()
-            hdr_tpl = fname.replace('.fits', '_tmp.hdr')
+            hdr_tpl = fname.replace('.fits', '_emu.hdr')
             #print(dir(head))
-            head.totextfile(hdr_tpl, clobber=True)
-            infile = fname.replace('.fits', '_wise_whole.fits') # wise_whole
-            outfile = fname.replace('.fits', '_wise_regrid.fits') # wise_regrid
-            cmd = '%s %s %s %s' % (regrid_exec, infile, outfile, hdr_tpl)
+            head.totextfile(hdr_tpl, overwrite=True)
+            outfile = fname.replace('_wise', '_wise_regrid') # wise_regrid
+            cmd = '%s %s %s %s' % (regrid_exec, fname, outfile, hdr_tpl)
             print(cmd)
+
+    # for fn in os.listdir(emu_fits_dir):
+    #     fname = osp.join(emu_fits_dir, fn)
+    #     if (fname.endswith('.fits') and fname.find('wise') == -1):
+    #         file = pyfits.open(fname)
+    #         head = file[0].header.copy()
+    #         hdr_tpl = fname.replace('.fits', '_tmp.hdr')
+    #         #print(dir(head))
+    #         head.totextfile(hdr_tpl, clobber=True)
+    #         infile = fname.replace('.fits', '_wise_whole.fits') # wise_whole
+    #         outfile = fname.replace('.fits', '_wise_regrid.fits') # wise_regrid
+    #         cmd = '%s %s %s %s' % (regrid_exec, infile, outfile, hdr_tpl)
+    #         print(cmd)
 
 def fits2png(fits_dir, png_dir):
     """
@@ -308,7 +321,7 @@ if __name__ == '__main__':
     #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
     #vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
-    download_wise(osp.join(root_dir, 'ir'))
+    #download_wise(osp.join(root_dir, 'ir'))
     #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
-    #regrid(osp.join(root_dir, 'split_fits/1deg'))
+    regrid(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'))
     #fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
