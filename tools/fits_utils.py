@@ -168,7 +168,7 @@ def split_file(fname, width_ratio, height_ratio, halo_ratio=50,
         plt.show()
         plt.savefig('test.pdf')
 
-def vo_get(split_fits_dir):
+def vo_get(split_fits_dir, download_dir, emu_type=None):
     """
     1. use VO query to get the image list close to the centre of a given EMU fits image
     wget -O ir_vo_list.csv 
@@ -183,7 +183,8 @@ def vo_get(split_fits_dir):
     for fn in os.listdir(split_fits_dir):
         #print(split_fits_dir)
         fname = osp.join(split_fits_dir, fn)
-        if (not fname.endswith('.fits') or fname.find('wise') > -1):
+        suffix = '.fits' if emu_type is None else '_%s.fits' % emu_type
+        if (not fname.endswith(suffix) or fname.find('wise') > -1):
             continue
         #print(fname)
         file = pyfits.open(fname)
@@ -199,13 +200,13 @@ def vo_get(split_fits_dir):
         w = pywcs.WCS(fhead, naxis=2)
         warnings.simplefilter("default")
         ra, dec = w.wcs_pix2world([[cx, cy]], 0)[0]
-        radius = max(fhead['CDELT1'] * cx, fhead['CDELT2'] * cy)
-        print(cmd % (osp.splitext(fname)[0], ra, dec, radius))
+        radius = max(fhead['CDELT1'] * cx / 10, fhead['CDELT2'] * cy / 10)
+        print(cmd % (osp.join(download_dir, osp.splitext(osp.basename(fname))[0]), ra, dec, radius))
 
 def download_wise(download_dir):
     """
     """
-    mapping = defaultdict(list)
+    #mapping = defaultdict(list)
     for fn in os.listdir(download_dir):
         fname = osp.join(download_dir, fn)
         if (not fname.endswith('.csv')):
@@ -215,13 +216,14 @@ def download_wise(download_dir):
             for row in reader:
                 if ('W1' == row['energy_bandpassname'] and 'image/fits' == row['access_format']):
                     url = row['access_url']
-                    mapping[osp.basename(fname).replace('.csv', '.fits')].append(url.split('/')[-1])
-                    print('wget %s' % (url))
+                    #mapping[osp.basename(fname).replace('.csv', '.fits')].append(url.split('/')[-1])
+                    print('wget -O %s %s' % (fn.replace('.csv', '_wise.fits'), url))
+                    break
     
-    with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
-        for k, v in mapping.items():
-            fout.write('%s,%s' % (k, ','.join(v)))
-            fout.write(os.linesep)
+    # with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
+    #     for k, v in mapping.items():
+    #         fout.write('%s,%s' % (k, ','.join(v)))
+    #         fout.write(os.linesep)
                 
 def prepare_coadd(split_fits_dir):
     """
@@ -299,14 +301,14 @@ def fits2png(fits_dir, png_dir):
 
 if __name__ == '__main__':
     #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
-    root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23'
+    root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23/emu_claran_dataset'
     #fname = osp.join(root_dir, 'gama_low_all_corrected.fits')
     #clip_file(fname)
 
     #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
-    #vo_get(osp.join(root_dir, 'split_fits/1deg'))
-    #download_wise(osp.join(root_dir, 'split_fits/1deg'))
+    #vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
+    download_wise(osp.join(root_dir, 'ir'))
     #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
     #regrid(osp.join(root_dir, 'split_fits/1deg'))
-    fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
+    #fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
