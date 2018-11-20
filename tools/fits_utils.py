@@ -13,6 +13,7 @@ import math
 import warnings
 import csv
 from collections import defaultdict
+import re
 
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
@@ -200,30 +201,33 @@ def vo_get(split_fits_dir, download_dir, emu_type=None):
         w = pywcs.WCS(fhead, naxis=2)
         warnings.simplefilter("default")
         ra, dec = w.wcs_pix2world([[cx, cy]], 0)[0]
-        radius = max(fhead['CDELT1'] * cx / 10, fhead['CDELT2'] * cy / 10)
+        radius = max(fhead['CDELT1'] * cx, fhead['CDELT2'] * cy)
         print(cmd % (osp.join(download_dir, osp.splitext(osp.basename(fname))[0]), ra, dec, radius))
 
 def download_wise(download_dir):
     """
     """
-    #mapping = defaultdict(list)
+    mapping = defaultdict(list)
     for fn in os.listdir(download_dir):
         fname = osp.join(download_dir, fn)
         if (not fname.endswith('.csv')):
             continue
         with open(fname, 'r') as votable:
             reader = csv.DictReader(votable)
+            match = 0
             for row in reader:
+                csv_base = osp.basename(fname)
                 if ('W1' == row['energy_bandpassname'] and 'image/fits' == row['access_format']):
                     url = row['access_url']
-                    #mapping[osp.basename(fname).replace('.csv', '.fits')].append(url.split('/')[-1])
-                    print('wget -O %s %s' % (fn.replace('.csv', '_wise.fits'), url))
-                    break
+                    wise_suffix = '_%d_wise.fits' % match
+                    mapping[csv_base.replace('.csv', '.fits')].append(csv_base.replace('.csv', wise_suffix))
+                    print('wget -O %s %s' % (fn.replace('.csv', wise_suffix), url))
+                    match += 1
     
-    # with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
-    #     for k, v in mapping.items():
-    #         fout.write('%s,%s' % (k, ','.join(v)))
-    #         fout.write(os.linesep)
+    with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
+        for k, v in mapping.items():
+            fout.write('%s,%s' % (k, ','.join(v)))
+            fout.write(os.linesep)
                 
 def prepare_coadd(split_fits_dir):
     """
@@ -241,6 +245,8 @@ def prepare_coadd(split_fits_dir):
             wise_dict[ll[0]] = ll[1:]
 
     for fn in os.listdir(split_fits_dir):
+        if (not fn in wise_dict):
+            continue
         fname = osp.join(split_fits_dir, fn)
         if (fname.endswith('.fits') and fname.find('wise') == -1):
             dirn = fname.replace('.fits', '_dir')
@@ -248,36 +254,47 @@ def prepare_coadd(split_fits_dir):
                 os.mkdir(dirn)
             ir_list = wise_dict[fn]
             for ir_fn in ir_list:
+                # co-add works on projected images
+                ir_fn = ir_fn.replace('_wise.fits', '_wise_regrid.fits')
                 dst = osp.join(split_fits_dir, dirn, ir_fn)
                 if (osp.exists(dst)):
                     #print("skip creating %s" % dst)
                     continue
-                src = osp.join(split_fits_dir, 'wise_ir', ir_fn)
+                src = osp.join(split_fits_dir, ir_fn)
                 os.symlink(src, dst)
             tbl_fn = fname.replace('.fits', '.tbl')
             if (not osp.exists(tbl_fn)):
                 cmd = '%s %s %s' % (imgtbl_exec, dirn, tbl_fn)
                 print(cmd)
+            # coadd requires the area file co-located in the same directory as input fits
+            for ir_fn in ir_list:
+                ir_fn = ir_fn.replace('_wise.fits', '_wise_regrid_area.fits')
+                dst = osp.join(split_fits_dir, dirn, ir_fn)
+                if (osp.exists(dst)):
+                    #print("skip creating %s" % dst)
+                    continue
+                src = osp.join(split_fits_dir, ir_fn)
+                os.symlink(src, dst)
+
             outfile = fname.replace('.fits', '_wise_coadd.fits')
             if (not osp.exists(outfile)):
-                hdr_tpl = fname.replace('.fits', '_tmp.hdr')
+                hdr_tpl = fname.replace('.fits', '_emu.hdr')
                 cmd = '%s %s %s %s' % (coadd_exec, tbl_fn, hdr_tpl, outfile)
                 print(cmd)
 
 def regrid(emu_fits_dir, ir_fits_dir):
     """ 
-    3. cutout the image to have a slightly larger angular size than the EMU image
-    4. reproject the cutout IR image onto the same grid as the EMU radio image
+    re-project the cutout IR image onto the same grid as the EMU radio image
     """
     for fn in os.listdir(ir_fits_dir):
         fname = osp.join(ir_fits_dir, fn)
-        if (fname.endswith('.fits') and fname.find('_wise') > -1):
-            emu_fits = osp.join(emu_fits_dir, fn.replace('_wise', ''))
-            file = pyfits.open(emu_fits)
-            head = file[0].header.copy()
-            hdr_tpl = fname.replace('.fits', '_emu.hdr')
-            #print(dir(head))
-            head.totextfile(hdr_tpl, overwrite=True)
+        if (fname.endswith('_wise.fits')):
+            emu_fits = osp.join(emu_fits_dir, re.sub('_[0-9]_wise', '', fn))
+            hdr_tpl = osp.join(ir_fits_dir, osp.basename(emu_fits).replace('.fits', '_emu.hdr'))
+            if (not osp.exists(hdr_tpl)):
+                file = pyfits.open(emu_fits)
+                head = file[0].header.copy()
+                head.totextfile(hdr_tpl, overwrite=True)
             outfile = fname.replace('_wise', '_wise_regrid') # wise_regrid
             cmd = '%s %s %s %s' % (regrid_exec, fname, outfile, hdr_tpl)
             print(cmd)
@@ -321,7 +338,11 @@ if __name__ == '__main__':
     #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
     #vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
+    #vo_get(osp.join(root_dir, 'test'), osp.join(root_dir, 'test'), emu_type='E1')
     #download_wise(osp.join(root_dir, 'ir'))
+    #download_wise(osp.join(root_dir, 'test'))
+    #regrid(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'))
+    #regrid(osp.join(root_dir, 'test'), osp.join(root_dir, 'test'))
     #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
-    regrid(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'))
+    prepare_coadd(osp.join(root_dir, 'test'))
     #fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
