@@ -221,7 +221,9 @@ def download_wise(download_dir):
                     url = row['access_url']
                     wise_suffix = '_%d_wise.fits' % match
                     mapping[csv_base.replace('.csv', '.fits')].append(csv_base.replace('.csv', wise_suffix))
-                    print('wget -O %s %s' % (fn.replace('.csv', wise_suffix), url))
+                    wise_dl_file = osp.join(download_dir, fn.replace('.csv', wise_suffix))
+                    if (not osp.exists(wise_dl_file)):
+                        print('wget -O %s %s' % (wise_dl_file, url))
                     match += 1
     
     with open(osp.join(download_dir, 'mapping_neighbour.txt'), 'w') as fout:
@@ -236,6 +238,9 @@ def prepare_coadd(split_fits_dir):
     create symbolic links inside f pointing back to all related wise IR fits files
     create the imgages.tbl for each EMU fits split
     do the co-adding
+
+    NOTE - this requires (original and derived) wise fits and original radio fits mingled 
+    into the same directory
     """
     wise_dict = dict()
     with open(osp.join(split_fits_dir, 'mapping_neighbour.txt'), 'r') as fin:
@@ -337,12 +342,12 @@ if __name__ == '__main__':
 
     #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
-    #vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
+    vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
     #vo_get(osp.join(root_dir, 'test'), osp.join(root_dir, 'test'), emu_type='E1')
     #download_wise(osp.join(root_dir, 'ir'))
     #download_wise(osp.join(root_dir, 'test'))
     #regrid(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'))
     #regrid(osp.join(root_dir, 'test'), osp.join(root_dir, 'test'))
     #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
-    prepare_coadd(osp.join(root_dir, 'test'))
+    #prepare_coadd(osp.join(root_dir, 'test'))
     #fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
