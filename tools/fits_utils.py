@@ -321,7 +321,9 @@ def fits2png(fits_dir, png_dir):
     """
     Convert fits to png files based on the D1 method
     """
-    cmd_tpl = '%s -cmap Cool'\
+    # cmd_tpl = '%s -cmap Cool'\
+    #     ' -zoom to fit -scale log -scale mode minmax -export %s -exit'
+    cmd_tpl = '%s -cmap gist_heat -cmap value 0.684039 0'\
         ' -zoom to fit -scale log -scale mode minmax -export %s -exit'
     from sh import Command
     ds9 = Command(ds9_path)
@@ -333,7 +335,6 @@ def fits2png(fits_dir, png_dir):
             cmd = cmd_tpl % (osp.join(fits_dir, fits), osp.join(png_dir, png))
             ds9(*(cmd.split()))
 
-
 if __name__ == '__main__':
     #root_dir = '/Users/Chen/proj/rgz-ml/data/EMU_GAMA23'
     root_dir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23/emu_claran_dataset'
@@ -342,7 +343,7 @@ if __name__ == '__main__':
 
     #fname = osp.join(root_dir, 'gama_low_all_corrected_clipped.fits')
     #split_file(fname, 6, 6, show_split_scheme=False, equal_aspect=True)
-    vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
+    #vo_get(osp.join(root_dir, 'fits'), osp.join(root_dir, 'ir'), emu_type='E1')
     #vo_get(osp.join(root_dir, 'test'), osp.join(root_dir, 'test'), emu_type='E1')
     #download_wise(osp.join(root_dir, 'ir'))
     #download_wise(osp.join(root_dir, 'test'))
@@ -351,3 +352,4 @@ if __name__ == '__main__':
     #prepare_coadd(osp.join(root_dir, 'split_fits/1deg'))
     #prepare_coadd(osp.join(root_dir, 'test'))
     #fits2png(osp.join(root_dir, 'split_fits_1deg_960MHz'), osp.join(root_dir, 'split_png_1deg_960MHz'))
+    fits2png(osp.join(root_dir, 'ir'), osp.join(root_dir, 'png_ir'))
