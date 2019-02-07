@@ -156,7 +156,7 @@ def convert_box2sky(detpath, fitsdir, outpath, threshold=0.8):
             print('%.4f,%.4f,%s' % (ra, dec, osp.basename(fname)))
 
 
-def _convert_source2box(source, fits_dir, table_name, conn):
+def _convert_source2box(source, fits_dir, table_name, conn, known_fits=[]):
     """
     for each component C in the catalog, this function outputs two things:
 
@@ -185,7 +185,16 @@ def _convert_source2box(source, fits_dir, table_name, conn):
         if (not res or len(res) == 0):
             print("fail to find fits file {0}".format(sqlStr))
             return None
-        fits_path = osp.join(fits_dir, res[0][0])
+        fits_path = None
+        for j in range(len(res)):
+            apath = osp.join(fits_dir, res[j][0])
+            if (apath in known_fits):
+                continue
+            else:
+                fits_path = apath
+                break
+        if (fits_path is None):
+            return None
         if (not (osp.exists(fits_path))):
             raise Exception('fits file not found %s' % fits_path)
         box_re = _gen_single_bbox(fits_path, ra, dec, major, minor, pa)
@@ -230,9 +239,8 @@ def _setup_db_pool():
 
 def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     """
-    1. work out which fits file each record belong to
+    1. work out which fits file each record belongs to
     """
-
     # build out the fits header cache to handle queries like:
     # does this point inside this fits file?
     fits_box_dict = defaultdict(list)
@@ -241,29 +249,27 @@ def convert_sky2box(catalog_csv_file, split_fits_dir, table_name):
     cpnlist = sorted(cpnlist[1:], key=lambda x: int(x.split(',')[0]))
     last_sid = cpnlist[0].split(',')[0]
     last_source = []
-    not_found = []
     g_db_pool = _setup_db_pool()
     conn = g_db_pool.getconn()
-    more_than_one = 0
-    for cpnline in cpnlist:
+    for idx, cpnline in enumerate(cpnlist):
         cpn = cpnline.split(',')
         sid = cpn[0]
         if (last_sid != sid):
-            ret = _convert_source2box(last_source, split_fits_dir, table_name, conn)
-            if (int(ret[-1].split('C')[0]) > 1):
-                more_than_one += 1
-            fits_box_dict[ret[0]].append(ret[1:])
-            if (ret is None):
-                not_found.append(sid)
+            known_fits_fid = []
+            while (1):
+                ret = _convert_source2box(last_source, split_fits_dir, 
+                                          table_name, conn, known_fits=known_fits_fid)
+                if (ret is None):
+                    break
+                fits_box_dict[ret[0]].append(ret[1:])
+                known_fits_fid.append(ret[0])
+                
             last_source = []
         last_source.append(cpn)
-        #last_source.append(sid)
         last_sid = sid
-    if (len(not_found) > 0):
-        print("%d not found" % len(not_found))
-        print(not_found)
+        if (idx % 100 == 0):
+            print('Processed %d components' % (idx + 1))
     g_db_pool.putconn(conn)
-    print('Multi component sources: %d' % more_than_one)
     return fits_box_dict
 
 def write_annotations(fits_box_dict, out_dir):
@@ -477,6 +483,14 @@ def change_file_names(fits_dir, png_dir):
 
     print('table: %s' % tbl)
     g_db_pool.putconn(conn)
+
+def regen_E1_annotations(emu_path):
+    fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_960MHz')
+    catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
+    print("Doing fits_box_dict")
+    fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_960mhz')
+    print("Done fits_box_dict")
+    write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
         
 if __name__ == '__main__':
     """ detpath = "/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/results"\
@@ -484,21 +498,22 @@ if __name__ == '__main__':
 
     fitsdir = '/Users/chen/gitrepos/ml/rgz_rcnn/data/RGZdevkit2017/RGZ2017/FITSImages'
     convert_box2sky(detpath, fitsdir, '/tmp') """
-    emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23' 
-    fits_fn = emu_path + '/split_fits/' + \
-              '1deg/gama_linmos_corrected_clipped4-0.fits'
-    #fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_960MHz')
-    #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
-    #catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
-    #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
-    #fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_960mhz')
-    #write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
-    #change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
-    anno_dir = osp.join(emu_path, 'emu_claran_dataset', 'annotations')
-    png_dir = osp.join(emu_path, 'emu_claran_dataset', 'png')
-    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_anno')
-    pred_dir = osp.join(emu_path, 'emu_claran_dataset', 'predictions', '600_w_3088')
-    #check_annotations(anno_dir, png_dir, out_dir)
-    png_dir = out_dir
-    out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_pred', '600_w_3088')
-    check_predictions(pred_dir, png_dir, out_dir)
+    emu_path = '/Users/chen/gitrepos/ml/rgz_rcnn/data/EMU_GAMA23'
+    regen_E1_annotations(emu_path)
+    # fits_fn = emu_path + '/split_fits/' + \
+    #           '1deg/gama_linmos_corrected_clipped4-0.fits'
+    # #fits_fn_path = osp.join(emu_path, 'split_fits_30arcmin_960MHz')
+    # #build_fits_cutout_index(fits_fn_path, tablename='onedegree_1368mhz', prefix='gama_linmos_corrected_clipped')
+    # #catalog_csv = osp.join(emu_path, '1368SglCtrDblRevTpl.csv')
+    # #catalog_csv = osp.join(emu_path, '960SglCtrDblRevTpl.csv')
+    # #fits_box_dict = convert_sky2box(catalog_csv, fits_fn_path, 'thirtyarcmin_960mhz')
+    # #write_annotations(fits_box_dict, osp.join(emu_path, 'annotations'))
+    # #change_file_names(fits_fn_path, osp.join(emu_path, 'split_png_1deg_1368MHz'))
+    # anno_dir = osp.join(emu_path, 'emu_claran_dataset', 'annotations')
+    # png_dir = osp.join(emu_path, 'emu_claran_dataset', 'png')
+    # out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_anno')
+    # pred_dir = osp.join(emu_path, 'emu_claran_dataset', 'predictions', '600_w_3088')
+    # #check_annotations(anno_dir, png_dir, out_dir)
+    # png_dir = out_dir
+    # out_dir = osp.join(emu_path, 'emu_claran_dataset', 'check_pred', '600_w_3088')
+    # check_predictions(pred_dir, png_dir, out_dir)
