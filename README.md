@@ -19,29 +19,65 @@ The code requires [Tensorflow 1.0 or above](https://www.tensorflow.org/install/)
 * Pillow
 * pyyaml
 
-Those modules can be installed using: `pip install -U pip` followed by `pip install -r requirements.txt`. It is **highly recommended** to setup a standalone [python virtual environment](https://pypi.python.org/pypi/virtualenv) to install these modules and run the code.
+**Install Modules:** 
 
-The code requires at least 3 GB of disk space (to store images and pre-trained models) and 3GB of RAM during training. For GPU training, this means the size of the device RAM is at least 3 GB.
+`pip install -U pip`
+
+`pip install -r requirements.txt`
+
+It is **highly recommended** to setup a standalone [python virtual environment](https://pypi.python.org/pypi/virtualenv) to install these modules and run the code.
+
+The code requires at least 3 GB of disk space (to store images and pre-trained models) and 3GB of RAM during training.
 
 
 ## Setup
 
-1. Clone this repository: `git clone https://github.com/chenwuperth/rgz_rcnn.git`
-2. Compile: `cd lib` and `make`. This should compile a bunch of Cython/C code (for bounding box calculation), and will produce the dynamic libraries under both CPUs and GPUs (if available).
-3. Download RGZ Data: `cd tools` and run `python download_data.py`. This will download data and RGZ model for training, testing, and demo.
+* Clone this repository: 
+
+  `git clone https://github.com/chenwuperth/rgz_rcnn.git`
+
+* Compile: 
+
+  `cd lib`
+
+  `make`
+
+This should compile a bunch of [Cython](https://cython.org/)/ C code (for bounding box calculation), and will produce the dynamic libraries under both CPUs and GPUs (if available).
+
+* Download RGZ Data: 
+
+  `cd tools` 
+
+  `python download_data.py` 
+
+This will download data and RGZ model for training, testing, and demo.
 
 
 ## Tutorial
 
 ### Getting started
 
-**Run**: `cd tools` and `python demo.py --radio ../data/rgzdemo/FIRSTJ011349.0+065025.fits --ir ../data/rgzdemo/FIRSTJ011349.0+065025_infrared.png` to detect a multi-component radio galaxy! Some examples of demo output are shown below:
+#### To detect a multi-component radio galaxy!:
+**Run:**
+
+`cd tools`
+
+`python demo.py --radio ../data/rgzdemo/FIRSTJ011349.0+065025.fits --ir ../data/rgzdemo/FIRSTJ011349.0+065025_infrared.png` 
+
+Some examples of demo output are shown below:
 
 <img src="http://ict.icrar.org/store/staff/cwu/rgz_data/demo_result.png" width="800">
 
 Each detected box denotes an identified radio source, and its morphology is succinctly labelled as *X* C_*Y* P, where *X* and *Y* denotes the number of radio components and the number of radio peaks respectively. Each morphology label is also associated with a score between 0 and 1, indicating the probability of a morphology class being present.
 
-**Run**: `cd experiments/scripts` and `bash example_test_cpu.sh` to evaluate the RGZ model on 4603 images on your laptop using CPUs only. Please change the `RGZ_RCNN` environment variable in the script accordingly. The output records the [Average Precision](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision) for each class and the overall [mean AP](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision) for the *D4* method.
+#### To evaluate the RGZ model on 4603 images on your laptop using CPUs only:
+**Run:**
+
+`cd experiments/scripts` 
+
+`bash example_test_cpu.sh`  
+
+Please change the `RGZ_RCNN` environment variable in the script accordingly. The output records the [Average Precision](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision) for each class and the overall [mean AP](https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Mean_average_precision) for the *D4* method.
 
 | Morphology Classes       | AP     |
 |-------------|--------|
@@ -53,7 +89,14 @@ Each detected box denotes an identified radio source, and its morphology is succ
 | 3C_3P       | 0.9269 |
 | mAP         | 83.6% |
 
-**Run**: `cd experiments/scripts` and `sbatch example_train_slurm.sh` to train your own RGZ model on GPU node managed by the SLURM job scheduler. You will need to change resources, paths, and module names based on the configuration of your own cluster.
+#### To train your own RGZ model on GPU node managed by the SLURM job scheduler:
+**Run:**
+
+`cd experiments/scripts`
+
+`sbatch example_train_slurm.sh` 
+
+You will need to change resources, paths, and module names based on the configuration of your own cluster.
 
 ## Questions?
 
@@ -61,7 +104,7 @@ Feel free to open an issue to discuss any questions not covered so far.
 
 ## Citation
 
-If you benefit from this code, please cite our paper:
+If you benefit from this code, please cite our [paper](https://academic.oup.com/mnras/article/482/1/1211/5142869):
 
 ```
 @article{doi:10.1093/mnras/sty2646,
