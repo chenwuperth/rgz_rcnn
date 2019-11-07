@@ -7,7 +7,7 @@
 
 ## Requirements
 
-The code requires [Tensorflow 1.0 or above](https://www.tensorflow.org/install/), python 2.7 as well as the following python libraries:
+The code requires [Tensorflow ≥ 1.0 but < 2.0](https://www.tensorflow.org/install/), python 2.7 as well as the following python libraries:
 
 * matplotlib
 * numpy
