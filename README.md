@@ -66,7 +66,7 @@ This will download data and RGZ model for training, testing, and demo.
 
 Some examples of demo output are shown below:
 
-<img src="http://ict.icrar.org/store/staff/cwu/rgz_data/demo_result.png" width="800">
+<img src="demo_result.png" width="800">
 
 Each detected box denotes an identified radio source, and its morphology is succinctly labelled as *X* C_*Y* P, where *X* and *Y* denotes the number of radio components and the number of radio peaks respectively. Each morphology label is also associated with a score between 0 and 1, indicating the probability of a morphology class being present.
 
