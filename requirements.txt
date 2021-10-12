@@ -1,7 +1,7 @@
 matplotlib
 numpy
 scipy
-opencv-python==3.2.0.6
+opencv-python==3.4.0.12
 cython
 easydict
 astropy
